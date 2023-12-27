@@ -1,0 +1,3 @@
+C:/Users/Chiddy/Desktop/app/build/CMakeFiles/PlayDirect.dir
+C:/Users/Chiddy/Desktop/app/build/CMakeFiles/edit_cache.dir
+C:/Users/Chiddy/Desktop/app/build/CMakeFiles/rebuild_cache.dir

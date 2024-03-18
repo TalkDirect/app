@@ -1,7 +1,7 @@
 #include <iostream>
 #include <SDL.h>
 
-//#include "headers/structs.h"
+#include "headers/structs.h"
 
 
 int main(int argc, char* argv[])

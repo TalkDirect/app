@@ -292,4 +292,5 @@ CMakeFiles/PlayDirect.dir/src/main.cpp.obj: \
  C:/Users/Chiddy/Desktop/app/ext/sdl/include/SDL_timer.h \
  C:/Users/Chiddy/Desktop/app/ext/sdl/include/SDL_version.h \
  C:/Users/Chiddy/Desktop/app/ext/sdl/include/SDL_locale.h \
- C:/Users/Chiddy/Desktop/app/ext/sdl/include/SDL_misc.h
+ C:/Users/Chiddy/Desktop/app/ext/sdl/include/SDL_misc.h \
+ C:\Users\Chiddy\Desktop\app\src\headers/structs.h

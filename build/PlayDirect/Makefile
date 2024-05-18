@@ -86,14 +86,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles C:\Users\Chiddy\Desktop\app\build\\CMakeFiles\progress.marks
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 all
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles C:\Users\Chiddy\Desktop\app\build\PlayDirect\\CMakeFiles\progress.marks
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect/all
 	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 clean
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect/clean
 .PHONY : clean
 
 # The main clean target
@@ -102,44 +102,56 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 preinstall
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 preinstall
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles\Makefile.cmake 1
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles\Makefile.cmake 1
 .PHONY : depend
 
-#=============================================================================
-# Target rules for targets named PlayDirect_App
+# Convenience name for target.
+PlayDirect/CMakeFiles/PlayDirect_App.dir/rule:
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect/CMakeFiles/PlayDirect_App.dir/rule
+.PHONY : PlayDirect/CMakeFiles/PlayDirect_App.dir/rule
 
-# Build rule for target.
-PlayDirect_App: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect_App
+# Convenience name for target.
+PlayDirect_App: PlayDirect/CMakeFiles/PlayDirect_App.dir/rule
 .PHONY : PlayDirect_App
 
 # fast build rule for target.
 PlayDirect_App/fast:
-	$(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/build
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/build
 .PHONY : PlayDirect_App/fast
 
-#=============================================================================
-# Target rules for targets named networking
+main.obj: main.cpp.obj
+.PHONY : main.obj
 
-# Build rule for target.
-networking: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 networking
-.PHONY : networking
+# target to build an object file
+main.cpp.obj:
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/main.cpp.obj
+.PHONY : main.cpp.obj
 
-# fast build rule for target.
-networking/fast:
-	$(MAKE) $(MAKESILENT) -f PlayDirect\src\networking\CMakeFiles\networking.dir\build.make PlayDirect/src/networking/CMakeFiles/networking.dir/build
-.PHONY : networking/fast
+main.i: main.cpp.i
+.PHONY : main.i
+
+# target to preprocess a source file
+main.cpp.i:
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/main.cpp.i
+.PHONY : main.cpp.i
+
+main.s: main.cpp.s
+.PHONY : main.s
+
+# target to generate assembly for a file
+main.cpp.s:
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/main.cpp.s
+.PHONY : main.cpp.s
 
 # Help Target
 help:
@@ -150,7 +162,9 @@ help:
 	@echo ... edit_cache
 	@echo ... rebuild_cache
 	@echo ... PlayDirect_App
-	@echo ... networking
+	@echo ... main.obj
+	@echo ... main.i
+	@echo ... main.s
 .PHONY : help
 
 
@@ -162,6 +176,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	$(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles\Makefile.cmake 0
+	cd /d C:\Users\Chiddy\Desktop\app\build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles\Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

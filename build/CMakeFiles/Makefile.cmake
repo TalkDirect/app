@@ -26,6 +26,8 @@ set(CMAKE_MAKEFILE_DEPENDS
   "C:/Program Files/CMake/share/cmake-3.28/Modules/Platform/Windows.cmake"
   "C:/Program Files/CMake/share/cmake-3.28/Modules/Platform/WindowsPaths.cmake"
   "C:/Users/Chiddy/Desktop/app/CMakeLists.txt"
+  "C:/Users/Chiddy/Desktop/app/PlayDirect/CMakeLists.txt"
+  "C:/Users/Chiddy/Desktop/app/PlayDirect/src/networking/CMakeLists.txt"
   "CMakeFiles/3.28.1/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.28.1/CMakeRCCompiler.cmake"
   "CMakeFiles/3.28.1/CMakeSystem.cmake"
@@ -41,9 +43,12 @@ set(CMAKE_MAKEFILE_OUTPUTS
 # Byproducts of CMake generate step:
 set(CMAKE_MAKEFILE_PRODUCTS
   "CMakeFiles/CMakeDirectoryInformation.cmake"
+  "PlayDirect/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "PlayDirect/src/networking/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/PlayDirect.dir/DependInfo.cmake"
+  "PlayDirect/CMakeFiles/PlayDirect_App.dir/DependInfo.cmake"
+  "PlayDirect/src/networking/CMakeFiles/networking.dir/DependInfo.cmake"
   )

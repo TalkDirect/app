@@ -1,0 +1,1 @@
+  -LC:/Users/Chiddy/Desktop/app/PlayDirect/networking  C:/Users/Chiddy/Desktop/app/ext/sdl/lib/x64/SDL2main.lib C:/Users/Chiddy/Desktop/app/ext/sdl/lib/x64/SDL2.lib src/networking/libnetworking.a -lwsock32 -lws2_32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

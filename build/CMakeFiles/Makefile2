@@ -62,42 +62,100 @@ CMAKE_BINARY_DIR = C:\Users\Chiddy\Desktop\app\build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: CMakeFiles/PlayDirect.dir/all
+all: PlayDirect/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
-preinstall:
+preinstall: PlayDirect/preinstall
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: CMakeFiles/PlayDirect.dir/clean
+clean: PlayDirect/clean
 .PHONY : clean
 
 #=============================================================================
-# Target rules for target CMakeFiles/PlayDirect.dir
+# Directory level rules for directory PlayDirect
+
+# Recursive "all" directory target.
+PlayDirect/all: PlayDirect/CMakeFiles/PlayDirect_App.dir/all
+PlayDirect/all: PlayDirect/src/networking/all
+.PHONY : PlayDirect/all
+
+# Recursive "preinstall" directory target.
+PlayDirect/preinstall: PlayDirect/src/networking/preinstall
+.PHONY : PlayDirect/preinstall
+
+# Recursive "clean" directory target.
+PlayDirect/clean: PlayDirect/CMakeFiles/PlayDirect_App.dir/clean
+PlayDirect/clean: PlayDirect/src/networking/clean
+.PHONY : PlayDirect/clean
+
+#=============================================================================
+# Directory level rules for directory PlayDirect/src/networking
+
+# Recursive "all" directory target.
+PlayDirect/src/networking/all: PlayDirect/src/networking/CMakeFiles/networking.dir/all
+.PHONY : PlayDirect/src/networking/all
+
+# Recursive "preinstall" directory target.
+PlayDirect/src/networking/preinstall:
+.PHONY : PlayDirect/src/networking/preinstall
+
+# Recursive "clean" directory target.
+PlayDirect/src/networking/clean: PlayDirect/src/networking/CMakeFiles/networking.dir/clean
+.PHONY : PlayDirect/src/networking/clean
+
+#=============================================================================
+# Target rules for target PlayDirect/CMakeFiles/PlayDirect_App.dir
 
 # All Build rule for target.
-CMakeFiles/PlayDirect.dir/all:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\PlayDirect.dir\build.make CMakeFiles/PlayDirect.dir/depend
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\PlayDirect.dir\build.make CMakeFiles/PlayDirect.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\Chiddy\Desktop\app\build\CMakeFiles --progress-num=1,2 "Built target PlayDirect"
-.PHONY : CMakeFiles/PlayDirect.dir/all
+PlayDirect/CMakeFiles/PlayDirect_App.dir/all: PlayDirect/src/networking/CMakeFiles/networking.dir/all
+	$(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/depend
+	$(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\Chiddy\Desktop\app\build\CMakeFiles --progress-num=1,2 "Built target PlayDirect_App"
+.PHONY : PlayDirect/CMakeFiles/PlayDirect_App.dir/all
 
 # Build rule for subdir invocation for target.
-CMakeFiles/PlayDirect.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles 2
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/PlayDirect.dir/all
+PlayDirect/CMakeFiles/PlayDirect_App.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles 6
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect/CMakeFiles/PlayDirect_App.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles 0
-.PHONY : CMakeFiles/PlayDirect.dir/rule
+.PHONY : PlayDirect/CMakeFiles/PlayDirect_App.dir/rule
 
 # Convenience name for target.
-PlayDirect: CMakeFiles/PlayDirect.dir/rule
-.PHONY : PlayDirect
+PlayDirect_App: PlayDirect/CMakeFiles/PlayDirect_App.dir/rule
+.PHONY : PlayDirect_App
 
 # clean rule for target.
-CMakeFiles/PlayDirect.dir/clean:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\PlayDirect.dir\build.make CMakeFiles/PlayDirect.dir/clean
-.PHONY : CMakeFiles/PlayDirect.dir/clean
+PlayDirect/CMakeFiles/PlayDirect_App.dir/clean:
+	$(MAKE) $(MAKESILENT) -f PlayDirect\CMakeFiles\PlayDirect_App.dir\build.make PlayDirect/CMakeFiles/PlayDirect_App.dir/clean
+.PHONY : PlayDirect/CMakeFiles/PlayDirect_App.dir/clean
+
+#=============================================================================
+# Target rules for target PlayDirect/src/networking/CMakeFiles/networking.dir
+
+# All Build rule for target.
+PlayDirect/src/networking/CMakeFiles/networking.dir/all:
+	$(MAKE) $(MAKESILENT) -f PlayDirect\src\networking\CMakeFiles\networking.dir\build.make PlayDirect/src/networking/CMakeFiles/networking.dir/depend
+	$(MAKE) $(MAKESILENT) -f PlayDirect\src\networking\CMakeFiles\networking.dir\build.make PlayDirect/src/networking/CMakeFiles/networking.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Users\Chiddy\Desktop\app\build\CMakeFiles --progress-num=3,4,5,6 "Built target networking"
+.PHONY : PlayDirect/src/networking/CMakeFiles/networking.dir/all
+
+# Build rule for subdir invocation for target.
+PlayDirect/src/networking/CMakeFiles/networking.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles 4
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 PlayDirect/src/networking/CMakeFiles/networking.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\Chiddy\Desktop\app\build\CMakeFiles 0
+.PHONY : PlayDirect/src/networking/CMakeFiles/networking.dir/rule
+
+# Convenience name for target.
+networking: PlayDirect/src/networking/CMakeFiles/networking.dir/rule
+.PHONY : networking
+
+# clean rule for target.
+PlayDirect/src/networking/CMakeFiles/networking.dir/clean:
+	$(MAKE) $(MAKESILENT) -f PlayDirect\src\networking\CMakeFiles\networking.dir\build.make PlayDirect/src/networking/CMakeFiles/networking.dir/clean
+.PHONY : PlayDirect/src/networking/CMakeFiles/networking.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

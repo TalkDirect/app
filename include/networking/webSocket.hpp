@@ -12,17 +12,19 @@ class webSocket {
     bool ConnectSocket(int sessionID);
     void DiscounnectSocket();
 
-    // Event Listener, activates whenever socket recieves a message
-    void onMessage();
+    // Simple Functions that call the private ones
+    void onSendMessage(const char data[]);
+    void onRetrieveMessage();
 
-    unsigned short readyState;
+
+    unsigned char readyState;
 
     private:
 
     // Mainly used to send off strings
-    void SendMessage();
+    void SendMessages(const char data[], int dataSize);
     // Used to recieve inputs from the client
-    void RecieveMessage();
+    void RecieveMessages();
     // Used to send off errors to the client & close socketConnection
     void SendError();
 
@@ -33,9 +35,10 @@ class webSocket {
 
     Winsock* winsock;
 
-    enum ReadyStates : unsigned short {
+    enum ReadyStates : unsigned char {
         CONNECTING,
         OPEN,
+        BUSY,
         CLOSING,
         CLOSED
     };

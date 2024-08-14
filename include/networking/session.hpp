@@ -12,13 +12,16 @@ class Session {
         void CreateSession(int sessionID);
         void LeaveSession();
         //client RetrieveClients();
+
+        webSocket* getWebSocket();
+
+        // Simple Functions that'll contain code for webSocket to Send, Retrieve Data from Websocket
+        void ExecuteTasks();
         
     private:
         int sessionID;
         webSocket* websocket;
-
-    // WINSOCK API STUFF
-        void InitWinSocket();
+        boolean sessionActive;
 };
 
 struct client {

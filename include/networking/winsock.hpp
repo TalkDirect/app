@@ -12,7 +12,7 @@ class Winsock {
     ~Winsock();
 
     // Simply send off data
-    char SendData(const char* data);
+    char SendData(const char data[], int dataSize);
 
     // Returns a pointer to a buffer containing the data
     char* RecieveData();

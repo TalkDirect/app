@@ -11,7 +11,7 @@ Session::Session(int SessionID) {
 };
 
 Session::~Session() {
-
+    delete Session::websocket;
 };
 
 void Session::CreateSession(int SessionID) {
@@ -19,6 +19,11 @@ void Session::CreateSession(int SessionID) {
     websocket = new webSocket(SessionID);
 };
 
-void Session::InitWinSocket() {
+void Session::ExecuteTasks() {
+    //Session::websocket->onSendMessage("test from desktop app");
+    Session::websocket->onRetrieveMessage();
+}
 
-};
+webSocket* Session::getWebSocket() {
+    return Session::websocket;
+}

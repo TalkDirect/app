@@ -23,14 +23,16 @@ Winsock::~Winsock() {
     DisconnectSocket();
 };
 
-char Winsock::SendData(const char* data) {
+char Winsock::SendData(const char data[], int dataSize) {
     int iResult;
 
-    iResult = send(currentSocket, data, (int)strlen(data), 0);
+    iResult = send(currentSocket, data, dataSize, 0);
     if (iResult == SOCKET_ERROR) {
         WSACleanup();
+        std::cout << "error sending bytes" << std::endl;
         return 0x01;
     }
+    std::cout << "sent bytes" << std::endl;
     return 0x00;
 };
 
@@ -71,12 +73,12 @@ char Winsock::Init() {
     }
 
     // Now, after we get a valid socket connection, attempt to connect to our actual session
-    char temp[100];
+    /*char temp[100];
     strcpy(temp, "/");
     strcat(temp, std::to_string(SessionID).c_str());
-    const char* actualUrl = temp;
+    const char* actualUrl = temp;*/
 
-    std::string GET_HTTP = "GET " + std::string(actualUrl) + " HTTP/1.1\r\nHost: localhost:9998\r\nConnection: close\r\n\r\n";
+    std::string GET_HTTP = "GET /500 HTTP/1.1\r\nHost: localhost:9998\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat, superchat\r\n\r\n";
 
     iResult = send(currentSocket, GET_HTTP.c_str(), strlen(GET_HTTP.c_str()), 0);
     if (iResult == SOCKET_ERROR) {
@@ -84,16 +86,14 @@ char Winsock::Init() {
         WSACleanup();
         return 0x01;
     }
+
     // Make a Test Buffer to send to server to ensure API working nicely
-    const char* sendbuf = "test buffer";
+    const char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74};
+    int size = 6;
 
     // Sending Initial Buffer
-    iResult = send(currentSocket, sendbuf, (int)strlen(sendbuf), 0);
-    if (iResult == SOCKET_ERROR) {
-        std::cout << "send failed: \n" << WSAGetLastError() << std::endl;
-        WSACleanup();
-        return 0x01;
-    }
+    SendData(sendbuf, size);
+
     std::cout << "sent test bytes" << std::endl;
     return 0x00;
 };
@@ -143,7 +143,7 @@ SOCKET Winsock::CreateSocket(const char* url, const char* port) {
     }
     
     
-    iResult = connect( ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen );
+    iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen );
     if (iResult == SOCKET_ERROR) {
         std::cout << "socket connection failed: \n" << iResult << std::endl;
         WSACleanup();
@@ -173,7 +173,9 @@ void Winsock::InitServerSession(int SessionID) {
             i += 1;
         }
     }
+    std::cout << "Retrieving Website HTML" << std::endl;
     std::cout << websiteHTML.c_str() << std::endl;
+    std::cout << "Retrieved Website HTML" << std::endl;
     // Close out socket
     closesocket(initSocket);
 };

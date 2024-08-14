@@ -1,2 +1,0 @@
-C:\msys64\ucrt64\bin\ar.exe qc libnetworking.a CMakeFiles/networking.dir/session.cpp.obj CMakeFiles/networking.dir/webSocket.cpp.obj CMakeFiles/networking.dir/winsock.cpp.obj
-C:\msys64\ucrt64\bin\ranlib.exe libnetworking.a

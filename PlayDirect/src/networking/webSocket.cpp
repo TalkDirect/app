@@ -16,7 +16,6 @@ webSocket::webSocket() {
 
 webSocket::~webSocket() {
     webSocket::DiscounnectSocket();
-    delete winsock;
 }
 
 bool webSocket::ConnectSocket(int sessionID) {

@@ -88,8 +88,9 @@ char Winsock::Init() {
     }
 
     // Make a Test Buffer to send to server to ensure API working nicely
-    const char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74};
-    int size = 6;
+    const char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x70, 0x70};
+
+    int size = 13;
 
     // Sending Initial Buffer
     SendData(sendbuf, size);
@@ -100,6 +101,7 @@ char Winsock::Init() {
 
 void Winsock::DisconnectSocket() {
     closesocket(currentSocket);
+    Winsock::CloseServerSession();
     WSACleanup();
 };
 
@@ -156,6 +158,34 @@ void Winsock::InitServerSession(int SessionID) {
     std::string API_ROUTE = "/api/host/" + SessionID;
 
     std::string GET_HTTP = "GET /api/host/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost:9999\r\nConnection: close\r\n\r\n";
+
+    int nDataLen;
+    char buffer[1000];
+    std::string websiteHTML;
+    // Simply Create a new Socket
+    SOCKET initSocket = CreateSocket("localhost", "9999");
+    
+    // For now, just send a request to make a new Session, later we'll add on searching if session already exists
+    send(initSocket, GET_HTTP.c_str(), GET_HTTP.size(), 0);
+    
+    while ((nDataLen = recv(initSocket, buffer, 1000, 0)) > 0) {
+        int i = 0;
+        while (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r') {
+            websiteHTML += buffer[i];
+            i += 1;
+        }
+    }
+    std::cout << "Retrieving Website HTML" << std::endl;
+    std::cout << websiteHTML.c_str() << std::endl;
+    std::cout << "Retrieved Website HTML" << std::endl;
+    // Close out socket
+    closesocket(initSocket);
+};
+
+void Winsock::CloseServerSession() {
+    std::string API_ROUTE = "/api/host/" + Winsock::SessionID;
+
+    std::string GET_HTTP = "GET /api/close/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost:9999\r\nConnection: close\r\n\r\n";
 
     int nDataLen;
     char buffer[1000];

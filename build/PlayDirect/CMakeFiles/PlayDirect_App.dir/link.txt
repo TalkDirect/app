@@ -1,3 +1,0 @@
-"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\PlayDirect_App.dir/objects.a
-C:\msys64\ucrt64\bin\ar.exe qc CMakeFiles\PlayDirect_App.dir/objects.a @CMakeFiles\PlayDirect_App.dir\objects1.rsp
-C:\msys64\ucrt64\bin\c++.exe -Wl,--whole-archive CMakeFiles\PlayDirect_App.dir/objects.a -Wl,--no-whole-archive -o PlayDirect_App.exe -Wl,--out-implib,libPlayDirect_App.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\PlayDirect_App.dir\linkLibs.rsp

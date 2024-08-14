@@ -1,8 +1,0 @@
-C:/Users/Chiddy/Desktop/app/build/CMakeFiles/edit_cache.dir
-C:/Users/Chiddy/Desktop/app/build/CMakeFiles/rebuild_cache.dir
-C:/Users/Chiddy/Desktop/app/build/PlayDirect/CMakeFiles/PlayDirect_App.dir
-C:/Users/Chiddy/Desktop/app/build/PlayDirect/CMakeFiles/edit_cache.dir
-C:/Users/Chiddy/Desktop/app/build/PlayDirect/CMakeFiles/rebuild_cache.dir
-C:/Users/Chiddy/Desktop/app/build/PlayDirect/src/networking/CMakeFiles/networking.dir
-C:/Users/Chiddy/Desktop/app/build/PlayDirect/src/networking/CMakeFiles/edit_cache.dir
-C:/Users/Chiddy/Desktop/app/build/PlayDirect/src/networking/CMakeFiles/rebuild_cache.dir

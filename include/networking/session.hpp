@@ -17,11 +17,13 @@ class Session {
 
         // Simple Functions that'll contain code for webSocket to Send, Retrieve Data from Websocket
         void ExecuteTasks();
+
+        boolean isActive();
         
     private:
         int sessionID;
         webSocket* websocket;
-        boolean sessionActive;
+        boolean sessionActive = false;
 };
 
 struct client {

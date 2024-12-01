@@ -13,18 +13,20 @@ class webSocket {
     void DiscounnectSocket();
 
     // Simple Functions that call the private ones
-    void onSendMessage(const char data[]);
-    void onRetrieveMessage();
+    void onSendMessage(char data[]);
+    char* onRetrieveMessage();
 
 
     unsigned char readyState;
 
     private:
 
-    // Mainly used to send off strings
-    void SendMessages(const char data[], int dataSize);
+    /*
+        Function that acts as a wrapper for the winsock logic, used to send messages off with the proper header buffer attached
+    */
+    void SendMessages(char data[], int dataSize, int dataType);
     // Used to recieve inputs from the client
-    void RecieveMessages();
+    char* RecieveMessages();
     // Used to send off errors to the client & close socketConnection
     void SendError();
 

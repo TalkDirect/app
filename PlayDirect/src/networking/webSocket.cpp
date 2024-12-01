@@ -23,14 +23,8 @@ bool webSocket::ConnectSocket(int sessionID) {
     readyState = ReadyStates::CONNECTING;
 
     winsock = new Winsock(url, sessionID);
-
-    // If we get a code that's 0x00, successfully sent data, otherwise return false
-    /* if (winsock->SendData("websocket test") == 0x00) {
-        std::cout << "client successfully sent test message to server" << std::endl;
-        readyState = ReadyStates::OPEN;
-        return true;
-    } */
     readyState = ReadyStates::OPEN;
+
     return true;
 }
 
@@ -39,26 +33,27 @@ void webSocket::DiscounnectSocket() {
     readyState = ReadyStates::CLOSING;
     winsock->DisconnectSocket();
     readyState = ReadyStates::CLOSED;
+    
     return;
 }
 
-void webSocket::onSendMessage(const char data[]) {
+void webSocket::onSendMessage(char data[]) {
     int dataSize = strlen(data);
-    webSocket::SendMessages(data, dataSize);
+    webSocket::SendMessages(data, dataSize, 0x01);
 }
 
-void webSocket::onRetrieveMessage() {
-    webSocket::RecieveMessages();
+char* webSocket::onRetrieveMessage() {
+    return webSocket::RecieveMessages();
 }
 
-void webSocket::SendMessages(const char data[], int dataSize) {
+void webSocket::SendMessages(char data[], int dataSize, int dataType) {
     if (readyState != ReadyStates::OPEN) {
         std::cout << "Socket is not open to send back data, returning" << std::endl;
         return;
     }
     readyState = ReadyStates::BUSY;
     // Start to send off data
-    switch (winsock->SendData(data,dataSize))
+    switch (winsock->SendData(data,dataSize, dataType))
     {
     case 0x00:
         std::cout << "Sent off Data" << std::endl;
@@ -77,19 +72,19 @@ void webSocket::SendMessages(const char data[], int dataSize) {
     return;
 }
 
-void webSocket::RecieveMessages() {
+char* webSocket::RecieveMessages() {
     if (readyState != ReadyStates::OPEN) {
         std::cout << "Socket is not open to recieve data, returning" << std::endl;
-        return;
+        return nullptr;
     }
     readyState = ReadyStates::BUSY;
 
     //Time to start to retrieve data
-    const char* dataBuf = winsock->RecieveData();
+    char* dataBuf = winsock->RecieveData();
     
     // For now just display the data out on the console
     std::cout << dataBuf << std::endl;
     readyState = ReadyStates::OPEN;
 
-    return;
+    return dataBuf;
 }

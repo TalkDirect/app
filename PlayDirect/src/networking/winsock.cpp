@@ -23,10 +23,34 @@ Winsock::~Winsock() {
     DisconnectSocket();
 };
 
-char Winsock::SendData(const char data[], int dataSize) {
+
+char Winsock::SendData(char data[], int dataSize, int dataType) {
     int iResult;
 
-    iResult = send(currentSocket, data, dataSize, 0);
+    struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, dataSize};
+    char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
+    memcpy(msgHeaderField.maskKey, maskingKey, 4);
+
+    // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
+    char buffer[6+dataSize];
+    buffer[0] = (msgHeaderField.finishedBit << 7) 
+                | (msgHeaderField.rsv1 << 6)
+                | (msgHeaderField.rsv2 << 5)
+                | (msgHeaderField.rsv3 << 4)
+                | (msgHeaderField.Opcode);
+
+    buffer[1] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen);
+    memcpy(buffer+2, maskingKey, 4);
+    int offset = 6; // current number of bits written to buffer
+
+    // XOR the data buffer before we copy it over to be sent off
+    for (int i = 0; i < dataSize; i++) {
+        data[i] ^= maskingKey[i % 4];
+    }
+
+    memcpy(buffer + offset, data, dataSize);
+
+    iResult = send(currentSocket, buffer, dataSize+offset, 0);
     if (iResult == SOCKET_ERROR) {
         WSACleanup();
         std::cout << "error sending bytes" << std::endl;
@@ -37,14 +61,24 @@ char Winsock::SendData(const char data[], int dataSize) {
 };
 
 char* Winsock::RecieveData() {
+    //TODO: Need to get this properly send data via return later
     int iResult;
 
     // Recvbuf will be the buffer containing the recieved data from server
-    char* recvbuf = (char*)malloc(sizeof(char)*64);
+    char recvbuf[512];
+    char decodedBuffer[512];
     iResult = recv(currentSocket, recvbuf, 512, 0);
     if (iResult > 0) {
-        std::cout << "Bytes recieved: \n" << iResult << std::endl;
-        return recvbuf;
+        int recvBuffLen = recvbuf[1];
+        std::cout << "Bytes recieved: " << iResult << std::endl;
+
+        for (int i = 2; i < iResult; i++) {
+            if (recvbuf[i] >= 32 || recvbuf[i] == '\n' || recvbuf[i] == '\r') {
+                decodedBuffer[i] = recvbuf[i];
+            }
+        }
+        std::cout << recvbuf << std::endl;
+        return decodedBuffer;
     }
 
     else if (iResult == 0)
@@ -72,13 +106,7 @@ char Winsock::Init() {
         return 0x01;
     }
 
-    // Now, after we get a valid socket connection, attempt to connect to our actual session
-    /*char temp[100];
-    strcpy(temp, "/");
-    strcat(temp, std::to_string(SessionID).c_str());
-    const char* actualUrl = temp;*/
-
-    std::string GET_HTTP = "GET /500 HTTP/1.1\r\nHost: localhost:9998\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat, superchat\r\n\r\n";
+    std::string GET_HTTP = "GET /" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost:9998\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat\r\n\r\n";
 
     iResult = send(currentSocket, GET_HTTP.c_str(), strlen(GET_HTTP.c_str()), 0);
     if (iResult == SOCKET_ERROR) {
@@ -88,12 +116,12 @@ char Winsock::Init() {
     }
 
     // Make a Test Buffer to send to server to ensure API working nicely
-    const char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x70, 0x70};
+    char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x70, 0x70};
 
     int size = 13;
 
     // Sending Initial Buffer
-    SendData(sendbuf, size);
+    SendData(sendbuf, size, 0x1);
 
     std::cout << "sent test bytes" << std::endl;
     return 0x00;
@@ -175,9 +203,6 @@ void Winsock::InitServerSession(int SessionID) {
             i += 1;
         }
     }
-    std::cout << "Retrieving Website HTML" << std::endl;
-    std::cout << websiteHTML.c_str() << std::endl;
-    std::cout << "Retrieved Website HTML" << std::endl;
     // Close out socket
     closesocket(initSocket);
 };
@@ -203,9 +228,6 @@ void Winsock::CloseServerSession() {
             i += 1;
         }
     }
-    std::cout << "Retrieving Website HTML" << std::endl;
-    std::cout << websiteHTML.c_str() << std::endl;
-    std::cout << "Retrieved Website HTML" << std::endl;
     // Close out socket
     closesocket(initSocket);
 };

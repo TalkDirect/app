@@ -8,9 +8,11 @@ Session::Session(int SessionID) {
     if (SessionID < 0)
         return;
     CreateSession(SessionID);
+    Session::sessionActive = true;
 };
 
 Session::~Session() {
+    Session::sessionActive = false;
     delete Session::websocket;
 };
 
@@ -21,7 +23,11 @@ void Session::CreateSession(int SessionID) {
 
 void Session::ExecuteTasks() {
     //Session::websocket->onSendMessage("test from desktop app");
-    Session::websocket->onRetrieveMessage();
+    std::cout << Session::websocket->onRetrieveMessage() << std::endl;
+}
+
+boolean Session::isActive() {
+    return Session::sessionActive;
 }
 
 webSocket* Session::getWebSocket() {

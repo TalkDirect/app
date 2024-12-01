@@ -3,11 +3,10 @@
 #include <string>
 
 #include "networking/session.hpp"
-#include "networking/webSocket.hpp"
 
 int main(int argc, char* argv[])
 {
-    std::cout << "Welcome to PlayDirect!, please enter your desired SessionID" << std::endl;
+    std::cout << "Welcome to PlayDirect!, please enter your desired SessionID (Max Length of 3 Numbers)" << std::endl;
     char desiredSessionID[3];
     std::cin >> desiredSessionID;
 
@@ -18,7 +17,7 @@ int main(int argc, char* argv[])
     do
     {
         session->ExecuteTasks();
-    } while (session->getWebSocket()->readyState == 0x01 || session->getWebSocket()->readyState == 0x02);
+    } while (session->isActive());
     
     std::cin.get();
     return 0;

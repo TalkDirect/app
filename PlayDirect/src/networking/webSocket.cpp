@@ -37,8 +37,7 @@ void webSocket::DiscounnectSocket() {
     return;
 }
 
-void webSocket::onSendMessage(char data[]) {
-    int dataSize = strlen(data);
+void webSocket::onSendMessage(unsigned char data[], int dataSize) {
     webSocket::SendMessages(data, dataSize, 0x01);
 }
 
@@ -46,7 +45,7 @@ char* webSocket::onRetrieveMessage() {
     return webSocket::RecieveMessages();
 }
 
-void webSocket::SendMessages(char data[], int dataSize, int dataType) {
+void webSocket::SendMessages(unsigned char data[], int dataSize, int dataType) {
     if (readyState != ReadyStates::OPEN) {
         std::cout << "Socket is not open to send back data, returning" << std::endl;
         return;
@@ -83,7 +82,6 @@ char* webSocket::RecieveMessages() {
     char* dataBuf = winsock->RecieveData();
     
     // For now just display the data out on the console
-    std::cout << dataBuf << std::endl;
     readyState = ReadyStates::OPEN;
 
     return dataBuf;

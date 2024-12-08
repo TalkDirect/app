@@ -18,8 +18,12 @@ class Winsock {
     NOTE: we're assuming that the payload will *always* be small, we will most certainly have to change this later one in the project, as in the payloadLen will
     alwyas be shorter than 125 bytes long so we won't have to use extended bitfield configuration
 
+        @param data[] data to be sent off to the API, in the form of bytes
+        @param dataSize the size of the data array
+        @param dataType  the type of the data we're sending off
+
     */
-    char SendData(char data[], int dataSize, int dataType);
+    char SendData(unsigned char data[], int dataSize, int dataType);
 
     /*
     Recieve data over websockets, in later implementations will allow for the sorting of data to optimize it
@@ -37,9 +41,16 @@ class Winsock {
     const char* socketUrl;
     int SessionID;
 
+    /*
+    Starts up and connects a new websocket to the API backend by the use of websockets acting as simple http requests
+    */
     char Init();
 
-    // Start up a new session on the API Service with the same SessionID given
+    /*
+        Opens a temporary socket in order to send a message to the API to start up a new session on it's end
+        @param SessionID the sessionid that you want the newly created session to be associated with
+
+    */
     void InitServerSession(int SessionID);
 
     void CloseServerSession();
@@ -58,5 +69,6 @@ struct socketMessageHeader {
     int Opcode : 4;
     int mask : 1;
     int payloadLen : 7;
-    char maskKey[4];
+    int extendedPayloadLen;
+    unsigned char maskKey[4];
 };

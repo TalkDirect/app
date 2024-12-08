@@ -17,8 +17,7 @@ int main(int argc, char* argv[])
     do
     {
         session->ExecuteTasks();
-    } while (session->isActive());
+    } while (session->getWebSocket()->readyState == 0x01 || session->getWebSocket()->readyState == 0x02 && session->isActive());
     
-    std::cin.get();
     return 0;
 }

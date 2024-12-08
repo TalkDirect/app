@@ -12,8 +12,15 @@ class webSocket {
     bool ConnectSocket(int sessionID);
     void DiscounnectSocket();
 
-    // Simple Functions that call the private ones
-    void onSendMessage(char data[]);
+    
+    /*
+        Public method that simply calls the private counterpart 
+
+        @param data[] data to be sent off to the API, in the form of bytes
+        @param dataSize the size of the data array
+
+    */
+    void onSendMessage(unsigned char data[], int dataSize);
     char* onRetrieveMessage();
 
 
@@ -22,13 +29,19 @@ class webSocket {
     private:
 
     /*
-        Function that acts as a wrapper for the winsock logic, used to send messages off with the proper header buffer attached
+        Private Function that acts as a wrapper for the winsock logic, used to send messages off with the proper header buffer attached
+        
+        @param data[] data to be sent off to the API, in the form of bytes
+        @param dataSize the size of the data array
+        @param dataType  the type of the data we're sending off
     */
-    void SendMessages(char data[], int dataSize, int dataType);
-    // Used to recieve inputs from the client
+    void SendMessages(unsigned char data[], int dataSize, int dataType);
+    
+    /*
+        Recieve messages from the server, returns them in an char pointer that points to a char array
+
+    */
     char* RecieveMessages();
-    // Used to send off errors to the client & close socketConnection
-    void SendError();
 
     int wsID;
     const char* url = "localhost";

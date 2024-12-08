@@ -22,8 +22,11 @@ void Session::CreateSession(int SessionID) {
 };
 
 void Session::ExecuteTasks() {
-    //Session::websocket->onSendMessage("test from desktop app");
-    std::cout << Session::websocket->onRetrieveMessage() << std::endl;
+    unsigned char sendbuf[22] = {0x74, 0x65, 0x73, 0x74, 0x20, 0x66, 0x72, 0x6F, 0x6D, 0x20, 0x64, 0x65, 0x73, 0x6B, 0x74, 0x6F, 0x70, 0x20, 0x61, 0x70, 0x70};
+    Session::websocket->onSendMessage(sendbuf, 22);
+    char* recievedData = Session::websocket->onRetrieveMessage();
+    std::cout << recievedData << std::endl;
+    delete[] recievedData;
 }
 
 boolean Session::isActive() {

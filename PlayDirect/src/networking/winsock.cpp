@@ -3,6 +3,11 @@
 
 #define DEFAULT_PORT "9998"
 
+// Bitmasks for TCP Header bitfields
+#define DATA_TYPE_MASK 0x0F;
+#define PAYLOAD_LENGTH_REG_SIZE 0x7F;
+#define PAYLOAD_LENGTH_EXT_SIZE 0xFF;
+
 Winsock::Winsock() {
     Winsock("localhost", 500);
 };
@@ -24,30 +29,49 @@ Winsock::~Winsock() {
 };
 
 
-char Winsock::SendData(char data[], int dataSize, int dataType) {
+char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     int iResult;
 
     struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, dataSize};
-    char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
+    unsigned char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
     memcpy(msgHeaderField.maskKey, maskingKey, 4);
 
     // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
-    char buffer[6+dataSize];
-    buffer[0] = (msgHeaderField.finishedBit << 7) 
+    int headerSize = 6;
+    if (dataSize > 125) {
+        headerSize += (dataSize <= 65535) ? 2 : 8; // Extended payload length
+    }
+
+    // current number of bits written to buffer
+    int offset = 0;
+
+    char buffer[headerSize+dataSize];
+    buffer[offset++] = (msgHeaderField.finishedBit << 7) 
                 | (msgHeaderField.rsv1 << 6)
                 | (msgHeaderField.rsv2 << 5)
                 | (msgHeaderField.rsv3 << 4)
                 | (msgHeaderField.Opcode);
 
-    buffer[1] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen);
-    memcpy(buffer+2, maskingKey, 4);
-    int offset = 6; // current number of bits written to buffer
+    buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen);
 
-    // XOR the data buffer before we copy it over to be sent off
-    for (int i = 0; i < dataSize; i++) {
-        data[i] ^= maskingKey[i % 4];
+    // Check if we need to extend payload length past 7 bits or not
+    if (dataSize > 125) {
+        if (dataSize <= 65535) {
+            buffer[offset++] = (dataSize >> 8) & PAYLOAD_LENGTH_EXT_SIZE;
+            buffer[offset++] = dataSize & PAYLOAD_LENGTH_EXT_SIZE;
+        } else {
+            for (int i = 7; i >= 0; i--)
+                buffer[offset++] = (dataSize >> (i * 8)) & PAYLOAD_LENGTH_EXT_SIZE;
+        }
     }
 
+    memcpy(buffer + offset, maskingKey, 4);
+
+    // XOR the data buffer before we copy it over to be sent off
+    for (int i = 0; i < dataSize; i++)
+        data[i] ^= maskingKey[i % 4];
+
+    offset += 4;
     memcpy(buffer + offset, data, dataSize);
 
     iResult = send(currentSocket, buffer, dataSize+offset, 0);
@@ -61,23 +85,35 @@ char Winsock::SendData(char data[], int dataSize, int dataType) {
 };
 
 char* Winsock::RecieveData() {
-    //TODO: Need to get this properly send data via return later
     int iResult;
 
-    // Recvbuf will be the buffer containing the recieved data from server
     char recvbuf[512];
-    char decodedBuffer[512];
-    iResult = recv(currentSocket, recvbuf, 512, 0);
-    if (iResult > 0) {
-        int recvBuffLen = recvbuf[1];
-        std::cout << "Bytes recieved: " << iResult << std::endl;
+    char* decodedBuffer = new char[512];
 
-        for (int i = 2; i < iResult; i++) {
-            if (recvbuf[i] >= 32 || recvbuf[i] == '\n' || recvbuf[i] == '\r') {
-                decodedBuffer[i] = recvbuf[i];
+    iResult = recv(currentSocket, recvbuf, 512, 0);
+    if (iResult > 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
+        std::cout << "Bytes recieved: " << iResult << std::endl;
+        unsigned char dataType = recvbuf[0] & DATA_TYPE_MASK;
+        int dataSize = 0;
+        int offset = 0;
+
+        // Grabbing the size of the actual payload within the recvbuf
+        dataSize += recvbuf[1] & PAYLOAD_LENGTH_REG_SIZE;
+
+        if (iResult > 131) { // When payloadLen is above 125 bits see if within range of only needing an 2 extra bytes or more
+            if (iResult <= 65541) {
+                dataSize += (recvbuf[2] << 8) & PAYLOAD_LENGTH_EXT_SIZE;
+                dataSize += recvbuf[3] & PAYLOAD_LENGTH_EXT_SIZE;
+                offset = 4;
+            } else { // if more just keep on looping and pulling out more bytes
+                for (int i = 7; i >= 0; i--)
+                    recvbuf[offset++] = (dataSize << (i * 8)) & PAYLOAD_LENGTH_EXT_SIZE;
             }
         }
-        std::cout << recvbuf << std::endl;
+        std::cout << dataSize << std::endl;
+        for (int i = offset; i < dataSize; i++) { // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
+            decodedBuffer[i-offset] = recvbuf[i];
+        }
         return decodedBuffer;
     }
 
@@ -116,12 +152,10 @@ char Winsock::Init() {
     }
 
     // Make a Test Buffer to send to server to ensure API working nicely
-    char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x70, 0x70};
-
-    int size = 13;
+    unsigned char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x70, 0x70};
 
     // Sending Initial Buffer
-    SendData(sendbuf, size, 0x1);
+    SendData(sendbuf, sizeof(sendbuf), 0x1);
 
     std::cout << "sent test bytes" << std::endl;
     return 0x00;

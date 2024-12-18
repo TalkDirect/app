@@ -26,7 +26,7 @@ void Session::ExecuteTasks() {
     Session::websocket->onSendMessage(sendbuf, 22);
     unsigned char* recievedData = Session::websocket->onRetrieveMessage();
     std::cout << recievedData << std::endl;
-    delete[] recievedData;
+    delete recievedData;
 }
 
 boolean Session::isActive() {

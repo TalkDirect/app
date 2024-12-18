@@ -88,53 +88,60 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
 };
 
 unsigned char* Winsock::RecieveData() {
+    return RecieveData(Winsock::currentSocket);
+}
+
+unsigned char* Winsock::RecieveData(SOCKET socket) { 
+/* Function almost works as expected, currently getting one small error where a big message separated into 2+ frames can be sent with a later message frame, might
+not be an issue with this code but with code in another place
+*/
     int iResult;
-    int size = 1024;
+    u_int64 size = 1024;
     char recvbuf[size];
+    unsigned char* decodedBuffer = new unsigned char[size];
 
-    iResult = recv(currentSocket, recvbuf, size, 0);
-    if (iResult > 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
-        std::cout << "Bytes recieved: " << iResult << std::endl;
-        u_int64 dataSize = 0;
-        int offset = 0;
+    while (true) {
+        iResult = recv(socket, recvbuf, size, 0);
+        if (iResult > 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
+            std::cout << "Bytes recieved: " << iResult << std::endl;
+            u_int64 offset = 0;
 
-        // Getting Items in recvbuf[0] / byte 1
-        unsigned char finBit = recvbuf[offset] & 0x80 != 0;
-        unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
+            // Getting Items in recvbuf[0] / byte 1
 
-        // Getting items in recvbuf[1] / byte 2
-        dataSize = recvbuf[offset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
+            unsigned char finBit = recvbuf[offset] & 0x80;
+            unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
 
-        // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
-        if (dataSize > 125) {
-            std::cout << "large message" << std::endl;
-            if (dataSize == 126) {
-                dataSize = (recvbuf[offset++] << 8) | recvbuf[offset++];
+            // Getting items in recvbuf[1] / byte 2
 
-            } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
-                std::cout << "extra large message" << std::endl;
-                for (int i = 0; i < 8; i++) {
-                    dataSize = (dataSize << 8) | recvbuf[offset++];
+            u_int64 dataSize = recvbuf[offset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
+
+            // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
+            if (dataSize > 125) {
+                if (dataSize == 126) { // PayloadLen is 2 unsigned bytes (16 bits) long
+                    dataSize = (recvbuf[offset++] << 8) | recvbuf[offset++];
+
+                } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
+                    for (int i = 0; i < 8; i++) {
+                        dataSize = (dataSize << 8) | recvbuf[offset++];
+                    }
                 }
             }
-        }
-        if (!finBit) {
-            std::cout << "broken message" << std::endl;
-        }
-        unsigned char* decodedBuffer = new unsigned char[dataSize];
-        for (int i = 0; i < dataSize; i++) {// start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
-            decodedBuffer[i] = recvbuf[offset++];
-        }
-        
-        return decodedBuffer;
-    }
+            for (int i = 0; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
+                decodedBuffer[i] = recvbuf[offset++];
 
-    else if (iResult == 0)
-        std::cout << "Connectioned Closed" << std::endl;
-    
-    else
-        std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
-    return nullptr;
+            if (finBit != 0) // If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
+                break;
+
+        }
+        else if (iResult == 0) {
+            std::cout << "Connectioned Closed" << std::endl;
+            break;
+        } else {
+            std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
+            return nullptr;
+        }
+    }
+    return decodedBuffer;
 
 };
 
@@ -249,6 +256,7 @@ void Winsock::InitServerSession(int SessionID) {
             i += 1;
         }
     }
+   
     // Close out socket
     closesocket(initSocket);
 };
@@ -274,6 +282,7 @@ void Winsock::CloseServerSession() {
             i += 1;
         }
     }
+
     // Close out socket
     closesocket(initSocket);
 };

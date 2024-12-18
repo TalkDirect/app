@@ -33,6 +33,8 @@ class Winsock {
     */
     unsigned char* RecieveData();
 
+    unsigned char* RecieveData(SOCKET socket);
+
     void DisconnectSocket();
 
     private:

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <SDL.h>
 #include <string>
+#include <thread>
+#include <chrono>
 
 #include "networking/session.hpp"
 
@@ -17,6 +19,7 @@ int main(int argc, char* argv[])
     do
     {
         session->ExecuteTasks();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     } while (session->getWebSocket()->readyState == 0x01 || session->getWebSocket()->readyState == 0x02 && session->isActive());
     
     return 0;

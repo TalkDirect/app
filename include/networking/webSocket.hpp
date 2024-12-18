@@ -21,7 +21,7 @@ class webSocket {
 
     */
     void onSendMessage(unsigned char data[], int dataSize);
-    char* onRetrieveMessage();
+    unsigned char* onRetrieveMessage();
 
 
     unsigned char readyState;
@@ -41,7 +41,7 @@ class webSocket {
         Recieve messages from the server, returns them in an char pointer that points to a char array
 
     */
-    char* RecieveMessages();
+    unsigned char* RecieveMessages();
 
     int wsID;
     const char* url = "localhost";

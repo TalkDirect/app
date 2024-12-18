@@ -5,8 +5,11 @@
 
 // Bitmasks for TCP Header bitfields
 #define DATA_TYPE_MASK 0x0F;
-#define PAYLOAD_LENGTH_REG_SIZE 0x7F;
-#define PAYLOAD_LENGTH_EXT_SIZE 0xFF;
+#define PAYLOAD_LENGTH_REG_SIZE_MASK 0x7F;
+#define PAYLOAD_LENGTH_EXT_SIZE_MASK 0xFF;
+
+#define PAYLOAD_LENGTH_REG_SIZE 125;
+#define PAYLOAD_LENGTH_EXT_SIZE 65535;
 
 Winsock::Winsock() {
     Winsock("localhost", 500);
@@ -32,6 +35,7 @@ Winsock::~Winsock() {
 char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     int iResult;
 
+    // Setting up the data to become the TCP Header Information
     struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, dataSize};
     unsigned char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
     memcpy(msgHeaderField.maskKey, maskingKey, 4);
@@ -55,13 +59,13 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen);
 
     // Check if we need to extend payload length past 7 bits or not
-    if (dataSize > 125) {
-        if (dataSize <= 65535) {
-            buffer[offset++] = (dataSize >> 8) & PAYLOAD_LENGTH_EXT_SIZE;
-            buffer[offset++] = dataSize & PAYLOAD_LENGTH_EXT_SIZE;
+    if (dataSize > PAYLOAD_LENGTH_REG_SIZE+0) {
+        if (dataSize <= PAYLOAD_LENGTH_EXT_SIZE+0) {
+            buffer[offset++] = (dataSize >> 8) & PAYLOAD_LENGTH_EXT_SIZE_MASK;
+            buffer[offset++] = dataSize & PAYLOAD_LENGTH_EXT_SIZE_MASK;
         } else {
             for (int i = 7; i >= 0; i--)
-                buffer[offset++] = (dataSize >> (i * 8)) & PAYLOAD_LENGTH_EXT_SIZE;
+                buffer[offset++] = (dataSize >> (i * 8)) & PAYLOAD_LENGTH_EXT_SIZE_MASK;
         }
     }
 
@@ -80,40 +84,48 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
         std::cout << "error sending bytes" << std::endl;
         return 0x01;
     }
-    std::cout << "sent bytes" << std::endl;
     return 0x00;
 };
 
-char* Winsock::RecieveData() {
+unsigned char* Winsock::RecieveData() {
     int iResult;
+    int size = 1024;
+    char recvbuf[size];
 
-    char recvbuf[512];
-    char* decodedBuffer = new char[512];
-
-    iResult = recv(currentSocket, recvbuf, 512, 0);
+    iResult = recv(currentSocket, recvbuf, size, 0);
     if (iResult > 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
         std::cout << "Bytes recieved: " << iResult << std::endl;
-        unsigned char dataType = recvbuf[0] & DATA_TYPE_MASK;
-        int dataSize = 0;
+        u_int64 dataSize = 0;
         int offset = 0;
 
-        // Grabbing the size of the actual payload within the recvbuf
-        dataSize += recvbuf[1] & PAYLOAD_LENGTH_REG_SIZE;
+        // Getting Items in recvbuf[0] / byte 1
+        unsigned char finBit = recvbuf[offset] & 0x80 != 0;
+        unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
 
-        if (iResult > 131) { // When payloadLen is above 125 bits see if within range of only needing an 2 extra bytes or more
-            if (iResult <= 65541) {
-                dataSize += (recvbuf[2] << 8) & PAYLOAD_LENGTH_EXT_SIZE;
-                dataSize += recvbuf[3] & PAYLOAD_LENGTH_EXT_SIZE;
-                offset = 4;
-            } else { // if more just keep on looping and pulling out more bytes
-                for (int i = 7; i >= 0; i--)
-                    recvbuf[offset++] = (dataSize << (i * 8)) & PAYLOAD_LENGTH_EXT_SIZE;
+        // Getting items in recvbuf[1] / byte 2
+        dataSize = recvbuf[offset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
+
+        // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
+        if (dataSize > 125) {
+            std::cout << "large message" << std::endl;
+            if (dataSize == 126) {
+                dataSize = (recvbuf[offset++] << 8) | recvbuf[offset++];
+
+            } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
+                std::cout << "extra large message" << std::endl;
+                for (int i = 0; i < 8; i++) {
+                    dataSize = (dataSize << 8) | recvbuf[offset++];
+                }
             }
         }
-        std::cout << dataSize << std::endl;
-        for (int i = offset; i < dataSize; i++) { // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
-            decodedBuffer[i-offset] = recvbuf[i];
+        if (!finBit) {
+            std::cout << "broken message" << std::endl;
         }
+        unsigned char* decodedBuffer = new unsigned char[dataSize];
+        for (int i = 0; i < dataSize; i++) {// start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
+            decodedBuffer[i] = recvbuf[offset++];
+        }
+        
         return decodedBuffer;
     }
 

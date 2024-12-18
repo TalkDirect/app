@@ -1,7 +1,6 @@
 #pragma once
 
 #include "networking/webSocket.hpp"
-
 class Session {
     public:
         Session();

@@ -31,7 +31,7 @@ class Winsock {
     NOTE: For now, the returning of the data array is not yielding the proper results that we want, might need to fix later on
 
     */
-    unsigned char* RecieveDataHelper();
+    unsigned char* RecieveData();
 
     void DisconnectSocket();
 

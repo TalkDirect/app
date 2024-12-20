@@ -17,6 +17,8 @@ class Session {
         // Simple Functions that'll contain code for webSocket to Send, Retrieve Data from Websocket
         void ExecuteTasks();
 
+        void SendData(unsigned char* data, int dataSize);
+
         boolean isActive();
         
     private:

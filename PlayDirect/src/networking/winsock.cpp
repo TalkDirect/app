@@ -92,9 +92,7 @@ unsigned char* Winsock::RecieveData() {
 }
 
 unsigned char* Winsock::RecieveData(SOCKET socket) { 
-/* Function almost works as expected, currently getting one small error where a big message separated into 2+ frames can be sent with a later message frame, might
-not be an issue with this code but with code in another place
-*/
+
     int iResult;
     u_int64 size = 1024;
     char recvbuf[size];
@@ -126,13 +124,18 @@ not be an issue with this code but with code in another place
                     }
                 }
             }
+
             for (int i = 0; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
                 decodedBuffer[i] = recvbuf[offset++];
 
-            if (finBit != 0) // If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
+            if (finBit != 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
+                std::cout << "completed message" << std::endl;
                 break;
+            }
 
+            std::cout << "broken message, attempting to pull more data from recv()" << std::endl;
         }
+        
         else if (iResult == 0) {
             std::cout << "Connectioned Closed" << std::endl;
             break;

@@ -16,6 +16,7 @@ webSocket::webSocket() {
 
 webSocket::~webSocket() {
     webSocket::DiscounnectSocket();
+    delete winsock;
 }
 
 bool webSocket::ConnectSocket(int sessionID) {
@@ -23,6 +24,12 @@ bool webSocket::ConnectSocket(int sessionID) {
     readyState = ReadyStates::CONNECTING;
 
     winsock = new Winsock(url, sessionID);
+
+    // Check if we were able to successfully create a socket
+    if (!winsock->validSocket()) {
+        readyState = ReadyStates::CLOSED;
+        return false;
+    }
     readyState = ReadyStates::OPEN;
 
     return true;
@@ -38,7 +45,7 @@ void webSocket::DiscounnectSocket() {
 }
 
 void webSocket::onSendMessage(unsigned char data[], int dataSize) {
-    webSocket::SendMessages(data, dataSize, 0x01);
+    webSocket::SendMessages(data, dataSize, 0x1);
 }
 
 unsigned char* webSocket::onRetrieveMessage() {

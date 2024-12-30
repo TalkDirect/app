@@ -14,8 +14,7 @@ class Session {
 
         webSocket* getWebSocket();
 
-        // Simple Functions that'll contain code for webSocket to Send, Retrieve Data from Websocket
-        void ExecuteTasks();
+        void RecieveData();
 
         void SendData(unsigned char* data, int dataSize);
 

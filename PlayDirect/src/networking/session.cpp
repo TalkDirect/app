@@ -13,6 +13,7 @@ Session::Session(int SessionID) {
 
 Session::~Session() {
     Session::sessionActive = false;
+    websocket->~webSocket();
     delete Session::websocket;
 };
 
@@ -21,9 +22,7 @@ void Session::CreateSession(int SessionID) {
     websocket = new webSocket(SessionID);
 };
 
-void Session::ExecuteTasks() {
-    unsigned char sendbuf[22] = {0x74, 0x65, 0x73, 0x74, 0x20, 0x66, 0x72, 0x6F, 0x6D, 0x20, 0x64, 0x65, 0x73, 0x6B, 0x74, 0x6F, 0x70, 0x20, 0x61, 0x70, 0x70};
-    SendData(sendbuf, 22);
+void Session::RecieveData() {
     unsigned char* recievedData = Session::websocket->onRetrieveMessage();
     std::cout << recievedData << std::endl;
     delete recievedData;

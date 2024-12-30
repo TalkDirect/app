@@ -35,6 +35,8 @@ class Winsock {
 
     unsigned char* RecieveData(SOCKET socket);
 
+    bool validSocket();
+
     void DisconnectSocket();
 
     private:

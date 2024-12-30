@@ -289,3 +289,7 @@ void Winsock::CloseServerSession() {
     // Close out socket
     closesocket(initSocket);
 };
+
+bool Winsock::validSocket() {
+    return currentSocket != INVALID_SOCKET;
+}

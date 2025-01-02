@@ -3,6 +3,8 @@
 #include "networking/webSocket.hpp"
 
 #include <functional>
+#include <atomic>
+#include <chrono>
 #include <thread>
 
 
@@ -32,7 +34,7 @@ class Session {
     private:
         int sessionID;
         webSocket* websocket;
-        boolean sessionActive = false;
+        std::atomic<boolean> sessionActive = false;
 
 
 };

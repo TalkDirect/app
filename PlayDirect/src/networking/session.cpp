@@ -26,10 +26,9 @@ void Session::execute() {
     // For now I'll settle for just sending data continously within the function like this; wanna somehow decouple it tho, maybe by having a sendbuf's memory address
     // passed in via pointer
     unsigned char sendbuf[] = {0x02, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x74, 0x68, 0x72, 0x65, 0x61, 0x64, 0x73};
-    for (int i = 0; i < 5; i++) {
-        // Reason this doesn't work is due to it being blocked by the indefinite recv() happening in the RecvThread, we need to allow it to take precedence/switch to it
+    while (sessionActive && websocket->validSocket()) {
         SendData(sendbuf, sizeof(sendbuf));
-        //std::cout << "Sent iteration " << i + 1 << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::cout << "Exiting execute Function" << std::endl;
 }
@@ -40,7 +39,7 @@ void Session::CreateSession(int SessionID) {
 };
 
 void Session::RecieveData() {
-    while (websocket->validSocket()) {
+    while (sessionActive && websocket->validSocket()) {
         unsigned char* recievedData = Session::websocket->onRetrieveMessage();
         std::cout << recievedData << std::endl;
         delete recievedData;

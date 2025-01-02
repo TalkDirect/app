@@ -180,14 +180,6 @@ char Winsock::Init() {
         WSACleanup();
         return 0x01;
     }
-
-    // Make a Test Buffer to send to server to ensure API working nicely
-    //unsigned char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x70, 0x70};
-
-    // Sending Initial Buffer
-    //SendData(sendbuf, sizeof(sendbuf), 0x1);
-
-    //std::cout << "sent test bytes" << std::endl;
     return 0x00;
 };
 

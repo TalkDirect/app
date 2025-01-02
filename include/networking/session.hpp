@@ -1,6 +1,11 @@
 #pragma once
 
 #include "networking/webSocket.hpp"
+
+#include <functional>
+#include <thread>
+
+
 class Session {
     public:
         Session();
@@ -15,8 +20,12 @@ class Session {
         webSocket* getWebSocket();
 
         void RecieveData();
-
         void SendData(unsigned char* data, int dataSize);
+
+        /**
+         * Primary Function for Session Class, starts the async process of recving buffers from the socket while also sending them
+         */
+        void execute();
 
         boolean isActive();
         
@@ -24,6 +33,8 @@ class Session {
         int sessionID;
         webSocket* websocket;
         boolean sessionActive = false;
+
+
 };
 
 struct client {

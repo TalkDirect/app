@@ -23,6 +23,8 @@ class webSocket {
     void onSendMessage(unsigned char data[], int dataSize);
     unsigned char* onRetrieveMessage();
 
+    bool validSocket();
+
 
     unsigned char readyState;
 

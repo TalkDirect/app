@@ -32,10 +32,9 @@ class Winsock {
 
     */
     unsigned char* RecieveData();
-
     unsigned char* RecieveData(SOCKET socket);
 
-    bool validSocket();
+    bool validConnection();
 
     void DisconnectSocket();
 

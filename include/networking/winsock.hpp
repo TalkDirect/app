@@ -2,6 +2,7 @@
 #include <ws2tcpip.h>
 #include <stdio.h>
 #include <string>
+#include <cstring>
 
 // Basic Class to handle TCP Ports and IP of the Windows Operating System
 class Winsock {

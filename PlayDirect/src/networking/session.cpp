@@ -28,7 +28,7 @@ void Session::execute() {
     unsigned char sendbuf[] = {0x02, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x74, 0x68, 0x72, 0x65, 0x61, 0x64, 0x73};
     while (sessionActive && websocket->validSocket()) {
         SendData(sendbuf, sizeof(sendbuf));
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
     }
     std::cout << "Exiting execute Function" << std::endl;
 }
@@ -39,6 +39,7 @@ void Session::CreateSession(int SessionID) {
 };
 
 void Session::RecieveData() {
+    // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
     while (sessionActive && websocket->validSocket()) {
         unsigned char* recievedData = Session::websocket->onRetrieveMessage();
         std::cout << recievedData << std::endl;

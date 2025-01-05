@@ -96,7 +96,8 @@ unsigned char* Winsock::RecieveData(SOCKET socket) {
     int iResult;
     u_int64 size = 1024;
     int decodedBufLen = 0;
-    char recvbuf[size];
+    char recvbuf[size] = {};
+    std::memset(recvbuf, 0, sizeof(recvbuf));
     unsigned char* decodedBuffer = new unsigned char[size];
 
     while (true) {
@@ -126,9 +127,15 @@ unsigned char* Winsock::RecieveData(SOCKET socket) {
                 }
             }
 
+            /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
+            signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
+            increment past it and ignore it.
+            */
+            offset++;
+            
             for (int i = decodedBufLen; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
                 decodedBuffer[decodedBufLen++] = recvbuf[offset++];
-
+            std::cout << decodedBufLen << std::endl;
             if (finBit != 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
                 std::cout << "completed message" << std::endl;
                 break;
@@ -140,7 +147,7 @@ unsigned char* Winsock::RecieveData(SOCKET socket) {
         else if (iResult == 0) {
             std::cout << "Connectioned Closed" << std::endl;
             break;
-        } else {
+        } else {// Error could be WSAEWOULDBLOCK since we're in non-blocking mode if so, ignore it and move on, else return a nullptr and break out of function
             int error = WSAGetLastError();
             if (error != WSAEWOULDBLOCK) {
                 std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
@@ -184,6 +191,7 @@ char Winsock::Init() {
 };
 
 void Winsock::DisconnectSocket() {
+    shutdown(currentSocket, SD_RECEIVE);
     closesocket(currentSocket);
     Winsock::CloseServerSession();
     WSACleanup();
@@ -261,6 +269,7 @@ void Winsock::InitServerSession(int SessionID) {
     }
    
     // Close out socket
+    shutdown(currentSocket, SD_BOTH);
     closesocket(initSocket);
 };
 
@@ -287,6 +296,7 @@ void Winsock::CloseServerSession() {
     }
 
     // Close out socket
+    shutdown(initSocket, SD_BOTH);
     closesocket(initSocket);
 };
 

@@ -49,6 +49,7 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     // current number of bits written to buffer
     int offset = 0;
 
+    // Edit the header bitfield to have to proper values we want
     char buffer[headerSize+dataSize];
     buffer[offset++] = (msgHeaderField.finishedBit << 7) 
                 | (msgHeaderField.rsv1 << 6)
@@ -94,7 +95,7 @@ unsigned char* Winsock::RecieveData() {
 unsigned char* Winsock::RecieveData(SOCKET socket) { 
 
     int iResult;
-    u_int64 size = 1024;
+    u_int64 size = 10240;
     int decodedBufLen = 0;
     char recvbuf[size] = {};
     std::memset(recvbuf, 0, sizeof(recvbuf));
@@ -135,7 +136,7 @@ unsigned char* Winsock::RecieveData(SOCKET socket) {
             
             for (int i = decodedBufLen; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
                 decodedBuffer[decodedBufLen++] = recvbuf[offset++];
-            std::cout << decodedBufLen << std::endl;
+
             if (finBit != 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
                 std::cout << "completed message" << std::endl;
                 break;

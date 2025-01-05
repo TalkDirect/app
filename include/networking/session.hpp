@@ -1,6 +1,13 @@
 #pragma once
 
 #include "networking/webSocket.hpp"
+
+#include <functional>
+#include <atomic>
+#include <chrono>
+#include <thread>
+
+
 class Session {
     public:
         Session();
@@ -14,15 +21,22 @@ class Session {
 
         webSocket* getWebSocket();
 
-        // Simple Functions that'll contain code for webSocket to Send, Retrieve Data from Websocket
-        void ExecuteTasks();
+        void RecieveData();
+        void SendData(unsigned char* data, int dataSize);
+
+        /**
+         * Primary Function for Session Class, starts the async process of recving buffers from the socket while also sending them
+         */
+        void execute();
 
         boolean isActive();
         
     private:
         int sessionID;
         webSocket* websocket;
-        boolean sessionActive = false;
+        std::atomic<boolean> sessionActive = false;
+
+
 };
 
 struct client {

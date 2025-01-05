@@ -92,12 +92,12 @@ unsigned char* Winsock::RecieveData() {
 }
 
 unsigned char* Winsock::RecieveData(SOCKET socket) { 
-/* Function almost works as expected, currently getting one small error where a big message separated into 2+ frames can be sent with a later message frame, might
-not be an issue with this code but with code in another place
-*/
+
     int iResult;
     u_int64 size = 1024;
-    char recvbuf[size];
+    int decodedBufLen = 0;
+    char recvbuf[size] = {};
+    std::memset(recvbuf, 0, sizeof(recvbuf));
     unsigned char* decodedBuffer = new unsigned char[size];
 
     while (true) {
@@ -106,7 +106,7 @@ not be an issue with this code but with code in another place
             std::cout << "Bytes recieved: " << iResult << std::endl;
             u_int64 offset = 0;
 
-            // Getting Items in recvbuf[0] / byte 1
+            // Getting items in recvbuf[0] / byte 1
 
             unsigned char finBit = recvbuf[offset] & 0x80;
             unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
@@ -126,19 +126,33 @@ not be an issue with this code but with code in another place
                     }
                 }
             }
-            for (int i = 0; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
-                decodedBuffer[i] = recvbuf[offset++];
 
-            if (finBit != 0) // If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
+            /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
+            signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
+            increment past it and ignore it.
+            */
+            offset++;
+            
+            for (int i = decodedBufLen; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
+                decodedBuffer[decodedBufLen++] = recvbuf[offset++];
+            std::cout << decodedBufLen << std::endl;
+            if (finBit != 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
+                std::cout << "completed message" << std::endl;
                 break;
+            }
 
+            std::cout << "broken message, attempting to pull more data from recv()" << std::endl;
         }
+        
         else if (iResult == 0) {
             std::cout << "Connectioned Closed" << std::endl;
             break;
-        } else {
-            std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
-            return nullptr;
+        } else {// Error could be WSAEWOULDBLOCK since we're in non-blocking mode if so, ignore it and move on, else return a nullptr and break out of function
+            int error = WSAGetLastError();
+            if (error != WSAEWOULDBLOCK) {
+                std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
+                return nullptr;
+            }
         }
     }
     return decodedBuffer;
@@ -161,6 +175,10 @@ char Winsock::Init() {
         return 0x01;
     }
 
+    // Make our socket be non-blocking now to allow async I/O
+    u_long iMode = 1;
+    iResult = ioctlsocket(currentSocket, FIONBIO, &iMode);
+
     std::string GET_HTTP = "GET /" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost:9998\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat\r\n\r\n";
 
     iResult = send(currentSocket, GET_HTTP.c_str(), strlen(GET_HTTP.c_str()), 0);
@@ -169,18 +187,11 @@ char Winsock::Init() {
         WSACleanup();
         return 0x01;
     }
-
-    // Make a Test Buffer to send to server to ensure API working nicely
-    unsigned char sendbuf[] = {0x02, 0x04, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x70, 0x70};
-
-    // Sending Initial Buffer
-    SendData(sendbuf, sizeof(sendbuf), 0x1);
-
-    std::cout << "sent test bytes" << std::endl;
     return 0x00;
 };
 
 void Winsock::DisconnectSocket() {
+    shutdown(currentSocket, SD_RECEIVE);
     closesocket(currentSocket);
     Winsock::CloseServerSession();
     WSACleanup();
@@ -258,6 +269,7 @@ void Winsock::InitServerSession(int SessionID) {
     }
    
     // Close out socket
+    shutdown(currentSocket, SD_BOTH);
     closesocket(initSocket);
 };
 
@@ -284,5 +296,10 @@ void Winsock::CloseServerSession() {
     }
 
     // Close out socket
+    shutdown(initSocket, SD_BOTH);
     closesocket(initSocket);
 };
+
+bool Winsock::validConnection() {
+    return currentSocket != INVALID_SOCKET;
+}

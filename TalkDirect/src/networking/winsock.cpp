@@ -1,5 +1,6 @@
 #include "networking/winsock.hpp"
 #include <iostream>
+#include <assert.h>
 
 #define DEFAULT_PORT "9998"
 
@@ -39,6 +40,8 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, dataSize};
     unsigned char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
     memcpy(msgHeaderField.maskKey, maskingKey, 4);
+
+    assert(sizeof(&data) != 0 && "For some reason we're sending over no data, this should never happen it's wasteful and pointless to do this. Issa bug");
 
     // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
     int headerSize = 6;
@@ -261,7 +264,7 @@ void Winsock::InitServerSession(int SessionID) {
     // For now, just send a request to make a new Session, later we'll add on searching if session already exists
     send(initSocket, GET_HTTP.c_str(), GET_HTTP.size(), 0);
     
-    while ((nDataLen = recv(initSocket, buffer, 1000, 0)) > 0) {
+    if ((nDataLen = recv(initSocket, buffer, 1000, 0)) > 0) {
         int i = 0;
         while (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r') {
             websiteHTML += buffer[i];
@@ -270,6 +273,7 @@ void Winsock::InitServerSession(int SessionID) {
     }
    
     // Close out socket
+    memset(buffer, 0, 1000);
     shutdown(currentSocket, SD_BOTH);
     closesocket(initSocket);
 };
@@ -297,6 +301,7 @@ void Winsock::CloseServerSession() {
     }
 
     // Close out socket
+    memset(buffer, 0, 1000);
     shutdown(initSocket, SD_BOTH);
     closesocket(initSocket);
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "networking/webSocket.hpp"
+#include "video/video.hpp"
 
 #include <functional>
 #include <atomic>
@@ -34,6 +35,7 @@ class Session {
     private:
         int sessionID;
         webSocket* websocket;
+        video* m_video;
         std::atomic<boolean> sessionActive = false;
 
 

@@ -1,5 +1,5 @@
 #include "networking/session.hpp"
-
+#include "video/video.hpp"
 
 Session::Session() {
     Session(500);
@@ -25,10 +25,10 @@ void Session::execute() {
 
     // For now I'll settle for just sending data continously within the function like this; wanna somehow decouple it tho, maybe by having a sendbuf's memory address
     // passed in via pointer
-    unsigned char sendbuf[] = {0x02, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x74, 0x68, 0x72, 0x65, 0x61, 0x64, 0x73};
+    unsigned char sendbuf_1[] = {0x02, 0x74, 0x65, 0x73, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x74, 0x68, 0x72, 0x65, 0x61, 0x64, 0x73};
     while (sessionActive && websocket->validSocket()) {
-        SendData(sendbuf, sizeof(sendbuf));
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        SendData(sendbuf_1, sizeof(sendbuf_1));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::cout << "Exiting execute Function" << std::endl;
 }
@@ -36,6 +36,7 @@ void Session::execute() {
 void Session::CreateSession(int SessionID) {
     // First, get a new websocket up and running
     websocket = new webSocket(SessionID);
+    m_video = new video();
 };
 
 void Session::RecieveData() {

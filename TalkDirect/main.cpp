@@ -1,5 +1,4 @@
 #include <iostream>
-#include <SDL.h>
 
 #include "networking/session.hpp"
 

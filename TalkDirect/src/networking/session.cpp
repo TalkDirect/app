@@ -31,7 +31,7 @@ void Session::execute() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::cout << "Exiting execute Function" << std::endl;
-}
+};
 
 void Session::CreateSession(int SessionID) {
     // First, get a new websocket up and running
@@ -51,12 +51,12 @@ void Session::RecieveData() {
 
 void Session::SendData(unsigned char* data, int dataSize) {
     Session::websocket->onSendMessage(data, dataSize);
-}
+};
 
 boolean Session::isActive() {
     return Session::sessionActive;
-}
+};
 
 webSocket* Session::getWebSocket() {
     return Session::websocket;
-}
+};

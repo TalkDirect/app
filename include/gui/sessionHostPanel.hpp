@@ -1,13 +1,14 @@
 #pragma once
 
+#include "gui/frame.hpp"
+
 #include <wx/wx.h>
 
-class Panel : public wxPanel {
+class sessionHostPanel : public wxPanel {
     public:
-    Panel(wxWindow& currFrame);
+    sessionHostPanel(wxWindow* currFrame);
     
     private:
-
     /* EVENT HANDLING */
 
     // INPUT EVENTS
@@ -20,8 +21,6 @@ class Panel : public wxPanel {
         ID_Host_Btn_Clicked = 0,
         ID_Help_Btn_Clicked = 1,
         ID_Key_Pressed = 2,
-        ID_Key_Stroke = 3,
-        ID_Send_Btn_Clicked = 4,
-        ID_Message_Received = 5
+        ID_Send_Btn_Clicked = 3,
     };
 };

@@ -1,11 +1,19 @@
 #pragma once
 
+#include "gui/sessionChatPanel.hpp"
+#include "gui/sessionHostPanel.hpp"
 #include <wx/wx.h>
 
 class Frame : public wxFrame {
     public:
     Frame();
     private:
+
+    wxPanel* currPanel = nullptr;
+
+    /* PANEL HANDLING */
+    void ShowSessionHostPanel(Frame* frame);
+    void ShowSessionChatPanel(Frame* frame);
 
     /* EVENT HANDLING */
 

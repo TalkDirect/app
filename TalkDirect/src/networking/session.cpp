@@ -36,17 +36,16 @@ void Session::execute() {
 void Session::CreateSession(int SessionID) {
     // First, get a new websocket up and running
     websocket = new webSocket(SessionID);
-    m_video = new video();
 };
 
-void Session::RecieveData() {
+unsigned char* Session::RecieveData() {
     // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
-    while (sessionActive && websocket->validSocket()) {
-        unsigned char* recievedData = Session::websocket->onRetrieveMessage();
+    unsigned char* recievedData;
+    if (sessionActive && websocket->validSocket()) {
+        recievedData = Session::websocket->onRetrieveMessage();
         std::cout << recievedData << std::endl;
-        delete recievedData;
     }
-    std::cout << "Ended RecieveThread" << std::endl;
+    return recievedData;
 };
 
 void Session::SendData(unsigned char* data, int dataSize) {

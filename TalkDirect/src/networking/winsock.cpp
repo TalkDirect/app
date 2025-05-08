@@ -191,11 +191,12 @@ char Winsock::Init() {
         WSACleanup();
         return 0x01;
     }
+    
     return 0x00;
 };
 
 void Winsock::DisconnectSocket() {
-    shutdown(currentSocket, SD_RECEIVE);
+    shutdown(currentSocket, SD_BOTH);
     closesocket(currentSocket);
     Winsock::CloseServerSession();
     WSACleanup();
@@ -274,7 +275,7 @@ void Winsock::InitServerSession(int SessionID) {
    
     // Close out socket
     memset(buffer, 0, 1000);
-    shutdown(currentSocket, SD_BOTH);
+    shutdown(initSocket, SD_BOTH);
     closesocket(initSocket);
 };
 

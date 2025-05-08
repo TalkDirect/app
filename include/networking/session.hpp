@@ -22,7 +22,7 @@ class Session {
 
         webSocket* getWebSocket();
 
-        void RecieveData();
+        unsigned char* RecieveData();
         void SendData(unsigned char* data, int dataSize);
 
         /**

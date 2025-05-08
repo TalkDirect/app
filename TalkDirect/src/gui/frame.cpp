@@ -3,7 +3,7 @@
 Frame::Frame()
     :wxFrame(NULL, wxID_ANY, "TalkDirect")
 {
-
+    sessionMgr = new sessionManager(this);
     /* Making the Top Menu Bar */
     wxMenu *menuConnectivity = new wxMenu;
 
@@ -21,6 +21,10 @@ Frame::Frame()
     /* Show the SessionHostPanel Upon Construction*/
 
     ShowSessionHostPanel(this);
+};
+
+sessionManager* Frame::getSessionManager() {
+    return sessionMgr;
 };
 
 void Frame::ShowSessionHostPanel(Frame* frame) {

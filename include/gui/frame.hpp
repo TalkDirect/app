@@ -2,14 +2,18 @@
 
 #include "gui/sessionChatPanel.hpp"
 #include "gui/sessionHostPanel.hpp"
+#include "gui/sessionManager.hpp"
 #include <wx/wx.h>
 
 class Frame : public wxFrame {
     public:
     Frame();
+
+    sessionManager* getSessionManager();
     private:
 
     wxPanel* currPanel = nullptr;
+    sessionManager* sessionMgr = nullptr;
 
     /* PANEL HANDLING */
     void ShowSessionHostPanel(Frame* frame);

@@ -12,6 +12,7 @@ target_sources(networking
     ${INCLUDE_DIR}/networking/session.hpp
     ${INCLUDE_DIR}/networking/webSocket.hpp
     ${INCLUDE_DIR}/networking/winsock.hpp
+    ${INCLUDE_DIR}/networking/networkQueue.hpp
 )
 
 target_include_directories(networking 

@@ -14,7 +14,7 @@ Session::Session(int SessionID) {
 
 Session::~Session() {
     Session::sessionActive = false;
-    websocket->~webSocket();
+    nQueue.empty();
     delete Session::websocket;
 };
 
@@ -38,14 +38,13 @@ void Session::CreateSession(int SessionID) {
     websocket = new webSocket(SessionID);
 };
 
-unsigned char* Session::RecieveData() {
+void Session::RecieveData() {
     // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
-    unsigned char* recievedData;
-    if (sessionActive && websocket->validSocket()) {
-        recievedData = Session::websocket->onRetrieveMessage();
-        std::cout << recievedData << std::endl;
+    while (sessionActive && websocket->validSocket()) {
+        unsigned char* recievedData = Session::websocket->onRetrieveMessage();
+        nQueue.push(recievedData);
+        std::cout << nQueue.pop() << std::endl;
     }
-    return recievedData;
 };
 
 void Session::SendData(unsigned char* data, int dataSize) {
@@ -58,4 +57,8 @@ boolean Session::isActive() {
 
 webSocket* Session::getWebSocket() {
     return Session::websocket;
+};
+
+networkQueue<unsigned char*>* Session::getNQueue() {
+    return &nQueue;
 };

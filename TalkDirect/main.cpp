@@ -15,6 +15,6 @@ wxIMPLEMENT_APP(App);
     // Start up a new Session
     Session* session = new Session(std::atol(desiredSessionID));
     
-    session->execute();    
+    session->execute();   
     return 0;
 }*/

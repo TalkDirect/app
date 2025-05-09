@@ -1,12 +1,15 @@
 #include <thread>
 #include <atomic>
+#include <assert.h>
 #include "gui/customEvents.hpp"
 #include "networking/session.hpp"
 
 class sessionManager {
     public:
     sessionManager(wxEvtHandler* handler);
+    ~sessionManager();
 
+    void helperFunction(int sessionid);
     void ConnectSession(int sessionid);
     void DisconnectSession();
 

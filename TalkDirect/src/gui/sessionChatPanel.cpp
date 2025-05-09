@@ -4,8 +4,8 @@ sessionChatPanel::sessionChatPanel(wxWindow* currFrame)
     :wxPanel(currFrame, wxID_ANY)
 {
     /* Making Text & Button GUI Elements */
-    chatInputTextField = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-    auto* chatTextMessages = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_READONLY);
+    chatInputTextField = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_MULTILINE);
+    chatTextMessages = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_READONLY | wxTE_MULTILINE);
     auto* sendButton = new wxButton(this, ID_Send_Btn_Clicked, "Send");
     auto* vbox = new wxBoxSizer(wxVERTICAL);
 
@@ -31,17 +31,18 @@ sessionChatPanel::sessionChatPanel(wxWindow* currFrame)
 
 void sessionChatPanel::OnSendButton(wxCommandEvent& event) {
     sessionManager* sessionMgr = currFrame->getSessionManager();
+    assert(sessionMgr != nullptr);
     std::string inputMessageString = chatInputTextField->GetValue().ToStdString();
     
     unsigned char* buffer = new unsigned char[inputMessageString.size() + 1];
     std::memcpy(buffer, inputMessageString.c_str(), inputMessageString.size() + 1);
     sessionMgr->OnSend(buffer);
 
-    wxMessageBox("Placeholder message box, will send out messages in the textfield next to it",
-    "TEMP", wxOK | wxICON_INFORMATION);
+    chatTextMessages->AppendText("Message: " + inputMessageString + " \n");
+
     delete[] buffer;
 };
 
 void sessionChatPanel::OnSessionMessageReceived(wxThreadEvent& event) {
-    wxLogMessage(event.GetString());
+    chatTextMessages->AppendText("Message: " + event.GetString() + " \n");
 };

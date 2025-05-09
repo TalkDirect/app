@@ -6,30 +6,35 @@ sessionManager::sessionManager(wxEvtHandler* handler)
 
 };
 
-void sessionManager::ConnectSession(int sessionid) {
+sessionManager::~sessionManager() {
+    DisconnectSession();
+};
+
+void sessionManager::ConnectSession(int sessionid) {  // <- Likely crashing here
     running = true;
     std::cout << "Creating session with ID: " << sessionid << std::endl;
 
-    currSession = new Session(sessionid); // <- Likely crashing here
+    currSession = new Session(sessionid);  // <- EVEN MORE Likely crashing here
 
     sessionRecvThread = std::thread(std::bind(&sessionManager::Recv, this));
+    sessionRecvThread.detach();
     std::cout << "Started Socket Receiver Thread" << std::endl;
 };
 
 void sessionManager::DisconnectSession() {
     running = false;
-    if (sessionRecvThread.joinable()) {
-        sessionRecvThread.join();
-    }
     if (sessionSendThread.joinable()) {
         sessionSendThread.join();
     }
-    currSession->~Session();
+    delete currSession;
+    currSession = nullptr;
 };
 
 void sessionManager::Recv() {
     while (running) {
-        unsigned char* recvData = currSession->RecieveData();
+        networkQueue<unsigned char*>* dataQueue = currSession->getNQueue();
+        unsigned char* recvData = dataQueue->pop();
+        assert(recvData != nullptr);
 
         wxThreadEvent* evt = new wxThreadEvent(EVT_SOCKET_DATA_RECEIVED);
         evt->SetString(recvData);

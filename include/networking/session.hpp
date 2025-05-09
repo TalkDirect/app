@@ -2,6 +2,7 @@
 
 #include "networking/webSocket.hpp"
 #include "video/video.hpp"
+#include "networking/networkQueue.hpp"
 
 #include <functional>
 #include <atomic>
@@ -21,8 +22,9 @@ class Session {
         //client RetrieveClients();
 
         webSocket* getWebSocket();
+        networkQueue<unsigned char*>* getNQueue();
 
-        unsigned char* RecieveData();
+        void RecieveData();
         void SendData(unsigned char* data, int dataSize);
 
         /**
@@ -36,6 +38,7 @@ class Session {
         int sessionID;
         webSocket* websocket;
         video* m_video;
+        networkQueue<unsigned char*> nQueue;
         std::atomic<boolean> sessionActive = false;
 
 

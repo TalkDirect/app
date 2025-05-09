@@ -7,7 +7,7 @@ Frame::Frame()
     /* Making the Top Menu Bar */
     wxMenu *menuConnectivity = new wxMenu;
 
-    menuConnectivity->Append(ID_Socket_Connect, "&Connect");
+    //menuConnectivity->Append(ID_Socket_Connect, "&Connect");
     menuConnectivity->Append(ID_Socket_DC, "&Disconnect");
 
     wxMenuBar *menuBar = new wxMenuBar;
@@ -31,6 +31,7 @@ void Frame::ShowSessionHostPanel(Frame* frame) {
     if (currPanel != nullptr) {
         currPanel->Destroy();
     }
+
     currPanel = new sessionHostPanel(this);
     Layout();
 }

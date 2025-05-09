@@ -4,6 +4,7 @@
 #include "gui/sessionHostPanel.hpp"
 #include "gui/sessionManager.hpp"
 #include <wx/wx.h>
+#include <assert.h>
 
 class Frame : public wxFrame {
     public:

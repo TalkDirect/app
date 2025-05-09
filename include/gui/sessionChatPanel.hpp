@@ -16,6 +16,7 @@ class sessionChatPanel : public wxPanel {
     Frame* currFrame;
 
     wxTextCtrl* chatInputTextField;
+    wxTextCtrl* chatTextMessages;
     /* EVENT HANDLING */
 
     // INPUT EVENTS

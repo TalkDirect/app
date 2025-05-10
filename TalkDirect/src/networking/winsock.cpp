@@ -2,7 +2,7 @@
 #include <iostream>
 #include <assert.h>
 
-#define DEFAULT_PORT "9998"
+#define DEFAULT_PORT "10000"
 
 // Bitmasks for TCP Header bitfields
 #define DATA_TYPE_MASK 0x0F;
@@ -183,7 +183,7 @@ char Winsock::Init() {
     u_long iMode = 1;
     iResult = ioctlsocket(currentSocket, FIONBIO, &iMode);
 
-    std::string GET_HTTP = "GET /" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost:9998\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat\r\n\r\n";
+    std::string GET_HTTP = "GET /" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat\r\n\r\n";
 
     iResult = send(currentSocket, GET_HTTP.c_str(), strlen(GET_HTTP.c_str()), 0);
     if (iResult == SOCKET_ERROR) {
@@ -254,13 +254,13 @@ SOCKET Winsock::CreateSocket(const char* url, const char* port) {
 void Winsock::InitServerSession(int SessionID) {
     std::string API_ROUTE = "/api/host/" + SessionID;
 
-    std::string GET_HTTP = "GET /api/host/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost:9999\r\nConnection: close\r\n\r\n";
+    std::string GET_HTTP = "GET /api/host/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
 
     int nDataLen;
     char buffer[1000];
     std::string websiteHTML;
     // Simply Create a new Socket
-    SOCKET initSocket = CreateSocket("localhost", "9999");
+    SOCKET initSocket = CreateSocket("localhost", "10000");
     
     // For now, just send a request to make a new Session, later we'll add on searching if session already exists
     send(initSocket, GET_HTTP.c_str(), GET_HTTP.size(), 0);
@@ -282,13 +282,13 @@ void Winsock::InitServerSession(int SessionID) {
 void Winsock::CloseServerSession() {
     std::string API_ROUTE = "/api/host/" + Winsock::SessionID;
 
-    std::string GET_HTTP = "GET /api/close/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost:9999\r\nConnection: close\r\n\r\n";
+    std::string GET_HTTP = "GET /api/close/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
 
     int nDataLen;
     char buffer[1000];
     std::string websiteHTML;
     // Simply Create a new Socket
-    SOCKET initSocket = CreateSocket("localhost", "9999");
+    SOCKET initSocket = CreateSocket("localhost", "10000");
     
     // For now, just send a request to make a new Session, later we'll add on searching if session already exists
     send(initSocket, GET_HTTP.c_str(), GET_HTTP.size(), 0);

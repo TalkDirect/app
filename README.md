@@ -41,3 +41,9 @@ From the root of the TalkDirect project directory:
 
 ```sh
 cmake -S ./ -B Build -G "MinGW Makefiles"
+```
+Afterwards, naviagte into ./build and then runL
+```sh
+cmake --build .
+```
+To build the project and run the .exe file produced.

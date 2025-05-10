@@ -86,7 +86,7 @@ unsigned char* webSocket::RecieveMessages() {
     readyState = ReadyStates::BUSY;
 
     //Time to start to retrieve data
-    unsigned char* dataBuf = winsock->RecieveData();
+    unsigned char* dataBuf = winsock->ReceiveData();
     
     // For now just display the data out on the console
     readyState = ReadyStates::OPEN;

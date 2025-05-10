@@ -19,7 +19,7 @@ Session::~Session() {
 };
 
 void Session::execute() {
-    std::thread RecvThread(std::bind(&Session::RecieveData, this));
+    std::thread RecvThread(std::bind(&Session::ReceiveData, this));
     RecvThread.detach();
     std::cout << "Started Socket Receiver Thread" << std::endl;
 
@@ -36,14 +36,16 @@ void Session::execute() {
 void Session::CreateSession(int SessionID) {
     // First, get a new websocket up and running
     websocket = new webSocket(SessionID);
+    std::thread RecvThread(std::bind(&Session::ReceiveData, this));
+    RecvThread.detach();
 };
 
-void Session::RecieveData() {
+void Session::ReceiveData() {
     // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
     while (sessionActive && websocket->validSocket()) {
-        unsigned char* recievedData = Session::websocket->onRetrieveMessage();
-        nQueue.push(recievedData);
-        std::cout << nQueue.pop() << std::endl;
+        unsigned char* receivedData = Session::websocket->onRetrieveMessage();
+        nQueue.push(receivedData);
+        std::cout << receivedData << std::endl;
     }
 };
 

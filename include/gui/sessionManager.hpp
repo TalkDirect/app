@@ -13,11 +13,11 @@ class sessionManager {
     void ConnectSession(int sessionid);
     void DisconnectSession();
 
-    void OnSend(unsigned char* data);
+    void OnSend(unsigned char* data, int dataSize);
 
     private:
     void Recv();
-    void Send(unsigned char* data);
+    void Send(unsigned char* data, int dataSize);
 
     int sessionid;
 

@@ -10,7 +10,7 @@ class Frame;
 
 class sessionChatPanel : public wxPanel {
     public:
-    sessionChatPanel(wxWindow* currFrame);
+    sessionChatPanel(Frame* currFrame);
     
     private:
     Frame* currFrame;
@@ -22,7 +22,7 @@ class sessionChatPanel : public wxPanel {
     // INPUT EVENTS
     void OnTextInput(wxKeyEvent& event);
     void OnSendButton(wxCommandEvent& event);
-    void OnSessionMessageReceived(wxThreadEvent& event);
+    void OnSessionMessageReceived(wxCommandEvent& event);
 
     // EVENT ENUMS
     enum eventCode {

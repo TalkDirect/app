@@ -17,6 +17,7 @@ Frame::Frame()
  
     Bind(wxEVT_MENU, &Frame::OnConnect, this, ID_Socket_Connect);
     Bind(wxEVT_MENU, &Frame::OnDiscounnect, this, ID_Socket_DC);
+    Bind(EVT_SOCKET_DATA_RECEIVED_FRAME, &Frame::OnSocketRecv, this);
 
     /* Show the SessionHostPanel Upon Construction*/
 
@@ -55,3 +56,9 @@ void Frame::OnConnect(wxCommandEvent& event) {
 void Frame::OnDiscounnect(wxCommandEvent& event) {
     ShowSessionHostPanel(this);
 };
+
+void Frame::OnSocketRecv(wxThreadEvent& event) {
+    wxCommandEvent* evt = new wxCommandEvent(EVT_SOCKET_DATA_RECEIVED_PANEL);
+    evt->SetString(event.GetString());
+    wxQueueEvent(currPanel, evt);
+}

@@ -10,7 +10,7 @@ class Frame;
 
 class sessionHostPanel : public wxPanel {
     public:
-    sessionHostPanel(wxWindow* currFrame);
+    sessionHostPanel(Frame* currFrame);
     
     private:
     Frame* currFrame;

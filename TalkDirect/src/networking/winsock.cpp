@@ -91,11 +91,11 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     return 0x00;
 };
 
-unsigned char* Winsock::RecieveData() {
-    return RecieveData(Winsock::currentSocket);
+unsigned char* Winsock::ReceiveData() {
+    return ReceiveData(Winsock::currentSocket);
 }
 
-unsigned char* Winsock::RecieveData(SOCKET socket) { 
+unsigned char* Winsock::ReceiveData(SOCKET socket) { 
 
     int iResult;
     u_int64 size = 10240;

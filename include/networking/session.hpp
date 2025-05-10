@@ -24,7 +24,7 @@ class Session {
         webSocket* getWebSocket();
         networkQueue<unsigned char*>* getNQueue();
 
-        void RecieveData();
+        void ReceiveData();
         void SendData(unsigned char* data, int dataSize);
 
         /**

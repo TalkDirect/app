@@ -1,8 +1,9 @@
 #include "gui/sessionHostPanel.hpp"
 
-sessionHostPanel::sessionHostPanel(wxWindow* currFrame)
+sessionHostPanel::sessionHostPanel(Frame* currFrame)
     :wxPanel(currFrame, wxID_ANY)
 {
+    sessionHostPanel::currFrame = currFrame;
     /* Making Text & Button GUI Elements */
     auto* welcomeText = new wxStaticText(this, wxID_ANY, "Welcome to TalkDirect, please Host/Join a Session via Session ID");
     auto* hostButton = new wxButton(this, ID_Host_Btn_Clicked, "Host");
@@ -36,8 +37,8 @@ sessionHostPanel::sessionHostPanel(wxWindow* currFrame)
 void sessionHostPanel::OnHostButton(wxCommandEvent& event) {
     sessionManager* sessionMgr = currFrame->getSessionManager();
     std::string inputSessionCode = sessionIDTextField->GetValue().Trim().ToStdString();
-    wxLogMessage(sessionIDTextField->GetValue().Trim());
     sessionMgr->ConnectSession(std::stol(inputSessionCode));
+    currFrame->ShowSessionChatPanel(currFrame);
 };
 
 void sessionHostPanel::OnJoinButton(wxCommandEvent& event) {

@@ -1,22 +1,43 @@
 # TalkDirect
-A messaging app that can connect to other desktop apps or the web app based TalkDirect. Built in C++, using win32's winsock for TCP-based socket connections and wxWidgets for the GUI Component. 
 
-# How to Use
-Simply host a new session, and have another connect to it by the code you used to start hosting the session. By doing this you'll open up a connection between the two allowing you to start talking.
+**TalkDirect** is a messaging app that enables communication between desktop clients or with the web-based TalkDirect app.  
+It is built in **C++**, using **Win32 Winsock** for TCP-based socket communication and **wxWidgets** for the GUI.
 
+---
 
-# Compile & Build
-Note: This project is compiled such that wxWidgets is a subdirectory meaning that this will build wxWidgets whenever this project itself is rebuilt.
+## How to Use
 
-1. Ensure that CMake is properly installed within your machine with g++/gcc compilers properly installed
-2. Install the latest version of `wxWidgets` onto your system, extract and place it within `./ext`
-3. Within the projects root directory enter in this command to your command line:
-        ```
-        cmake -S ./ -B Build -G "MinGW Makefiles"
-        ```
-4. Navigate to the newly created build folder
-5. In the build folder write the following:
-        ```
-        cmake --build ./
-        ```
-6. Click n Run the .exe file
+1. Launch the application.
+2. Choose to **host a new session**.
+3. Share the generated session code with another user.
+4. The other user can **connect using that code** to establish a direct connection and begin chatting.
+
+---
+
+## Compile & Build Instructions
+
+> ⚠️ **Note:** You must have a properly compiled version of `wxWidgets` installed inside the `./ext` directory.
+
+### 1. Prerequisites
+
+- Make sure `CMake` is installed.
+- Ensure `g++/gcc` (MinGW) is available in your system's PATH.
+
+### 2. Install `wxWidgets`
+
+1. Download the latest version of [`wxWidgets`](https://www.wxwidgets.org/downloads/) and extract it into `./ext`.
+2. Open a terminal and navigate to the **root** of the extracted `wxWidgets` directory.
+3. Run the following command to build:
+
+    ```sh
+    mingw32-make -f makefile.gcc BUILD=release SHARED=1 UNICODE=1
+    ```
+
+4. Once completed, verify that the required libraries and headers were generated successfully according to the [wxWidgets build guide](https://docs.wxwidgets.org).
+
+### 3. Generate Build Files
+
+From the root of the TalkDirect project directory:
+
+```sh
+cmake -S ./ -B Build -G "MinGW Makefiles"

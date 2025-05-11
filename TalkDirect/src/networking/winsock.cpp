@@ -13,7 +13,7 @@
 #define PAYLOAD_LENGTH_EXT_SIZE 65535;
 
 Winsock::Winsock() {
-    Winsock("localhost", 500);
+    Winsock("talkdirect-api.onrender.com", 500);
 };
 
 Winsock::Winsock(const char* socketUrl) {
@@ -82,6 +82,7 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     offset += 4;
     memcpy(buffer + offset, data, dataSize);
 
+    // TODO: Make this into a SSL_write since the connection is now a HTTPS connection
     iResult = send(currentSocket, buffer, dataSize+offset, 0);
     if (iResult == SOCKET_ERROR) {
         WSACleanup();
@@ -105,6 +106,7 @@ unsigned char* Winsock::ReceiveData(SOCKET socket) {
     unsigned char* decodedBuffer = new unsigned char[size];
 
     while (true) {
+        // TODO: Make this into a SSL_Read since the connection is now a HTTPS connection
         iResult = recv(socket, recvbuf, size, 0);
         if (iResult > 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
             std::cout << "Bytes recieved: " << iResult << std::endl;
@@ -183,8 +185,9 @@ char Winsock::Init() {
     u_long iMode = 1;
     iResult = ioctlsocket(currentSocket, FIONBIO, &iMode);
 
-    std::string GET_HTTP = "GET /" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat\r\n\r\n";
+    std::string GET_HTTP = "GET /" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: talkdirect-api.onrender.com\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: chat\r\n\r\n";
 
+    // TODO: Make this into a SSL_write since the connection is now a HTTPS connection
     iResult = send(currentSocket, GET_HTTP.c_str(), strlen(GET_HTTP.c_str()), 0);
     if (iResult == SOCKET_ERROR) {
         std::cout << "send failed: \n" << WSAGetLastError() << std::endl;
@@ -232,6 +235,7 @@ SOCKET Winsock::CreateSocket(const char* url, const char* port) {
 
 
     SOCKET ConnectSocket = INVALID_SOCKET;
+    std::cout << "Successfully created addrinfo" << std::endl;
 
     ptr = result;
     ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
@@ -240,11 +244,11 @@ SOCKET Winsock::CreateSocket(const char* url, const char* port) {
         WSACleanup();
         return INVALID_SOCKET;
     }
-    
-    
+    std::cout << "Successfully created socket with addrinfo" << std::endl;
+
     iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen );
     if (iResult == SOCKET_ERROR) {
-        std::cout << "socket connection failed: \n" << iResult << std::endl;
+        std::cout << "socket connection failed: \n" << WSAGetLastError() << std::endl;
         WSACleanup();
         return INVALID_SOCKET;
     }
@@ -252,19 +256,19 @@ SOCKET Winsock::CreateSocket(const char* url, const char* port) {
 };
 
 void Winsock::InitServerSession(int SessionID) {
-    std::string API_ROUTE = "/api/host/" + SessionID;
-
-    std::string GET_HTTP = "GET /api/host/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+    std::string GET_HTTP = "GET /api/host/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: talkdirect-api.onrender.com\r\nConnection: close\r\n\r\n";
 
     int nDataLen;
     char buffer[1000];
     std::string websiteHTML;
     // Simply Create a new Socket
-    SOCKET initSocket = CreateSocket("localhost", "10000");
+    SOCKET initSocket = CreateSocket("talkdirect-api.onrender.com", "10000");
     
     // For now, just send a request to make a new Session, later we'll add on searching if session already exists
+    // TODO: Make this into a SSL_write since the connection is now a HTTPS connection
     send(initSocket, GET_HTTP.c_str(), GET_HTTP.size(), 0);
     
+    // TODO: Make this into a SSL_read since the connection is now a HTTPS connection
     if ((nDataLen = recv(initSocket, buffer, 1000, 0)) > 0) {
         int i = 0;
         while (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r') {
@@ -272,7 +276,7 @@ void Winsock::InitServerSession(int SessionID) {
             i += 1;
         }
     }
-   
+    std::cout << "Able to Create Socket with SessionID:" + std::to_string(SessionID) << std::endl;
     // Close out socket
     memset(buffer, 0, 1000);
     shutdown(initSocket, SD_BOTH);
@@ -280,19 +284,19 @@ void Winsock::InitServerSession(int SessionID) {
 };
 
 void Winsock::CloseServerSession() {
-    std::string API_ROUTE = "/api/host/" + Winsock::SessionID;
-
-    std::string GET_HTTP = "GET /api/close/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+    std::string GET_HTTP = "GET /api/close/" + std::to_string(SessionID) + " HTTP/1.1\r\nHost: talkdirect-api.onrender.com\r\nConnection: close\r\n\r\n";
 
     int nDataLen;
     char buffer[1000];
     std::string websiteHTML;
     // Simply Create a new Socket
-    SOCKET initSocket = CreateSocket("localhost", "10000");
+    SOCKET initSocket = CreateSocket("talkdirect-api.onrender.com", "10000");
     
     // For now, just send a request to make a new Session, later we'll add on searching if session already exists
+    // TODO: Make this into a SSL_write since the connection is now a HTTPS connection
     send(initSocket, GET_HTTP.c_str(), GET_HTTP.size(), 0);
     
+    // TODO: Make this into a SSL_read since the connection is now a HTTPS connection
     while ((nDataLen = recv(initSocket, buffer, 1000, 0)) > 0) {
         int i = 0;
         while (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r') {
@@ -301,6 +305,7 @@ void Winsock::CloseServerSession() {
         }
     }
 
+    std::cout << "Able to Close Socket with SessionID:" + std::to_string(SessionID) << std::endl;
     // Close out socket
     memset(buffer, 0, 1000);
     shutdown(initSocket, SD_BOTH);

@@ -46,7 +46,7 @@ class webSocket {
     unsigned char* RecieveMessages();
 
     int wsID;
-    const char* url = "localhost";
+    const char* url = "talkdirect-api.onrender.com";
     unsigned int bufferedAmount;
     const char* BinaryType = "arraybuffer";
 

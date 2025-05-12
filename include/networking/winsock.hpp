@@ -3,6 +3,14 @@
 #include <stdio.h>
 #include <string>
 #include <cstring>
+#include <Openssl/ssl.h>
+#include <Openssl/err.h>
+
+
+struct SOCKET_CONNECTION {
+    SSL* socket_ssl;
+    SOCKET currentSocket;
+};
 
 // Basic Class to handle TCP Ports and IP of the Windows Operating System
 class Winsock {
@@ -33,7 +41,7 @@ class Winsock {
 
     */
     unsigned char* ReceiveData();
-    unsigned char* ReceiveData(SOCKET socket);
+    unsigned char* ReceiveData(SOCKET_CONNECTION Connection);
 
     bool validConnection();
 
@@ -41,9 +49,12 @@ class Winsock {
 
     private:
     WSADATA wsaData;
-    SOCKET currentSocket;
+    //SOCKET currentSocket;
+    SOCKET_CONNECTION currentConnection;
     const char* socketUrl;
     int SessionID;
+    //SSL* ssl;
+    SSL_CTX* ctx;
 
     /*
     Starts up and connects a new websocket to the API backend by the use of websockets acting as simple http requests
@@ -59,9 +70,9 @@ class Winsock {
 
     void CloseServerSession();
 
-    SOCKET CreateSocket();
-    SOCKET CreateSocket(const char* url);
-    SOCKET CreateSocket(const char* url, const char* port);
+    SOCKET_CONNECTION CreateSocket();
+    SOCKET_CONNECTION CreateSocket(const char* url);
+    SOCKET_CONNECTION CreateSocket(const char* url, const char* port);
 
 };
 

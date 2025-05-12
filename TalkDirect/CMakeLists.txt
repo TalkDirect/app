@@ -22,6 +22,8 @@ target_link_libraries(TalkDirect_App
     wsock32
     ws2_32
     ${wxWidgets_LIBRARIES}
+    SSL
+    Crypto
     )
 
 target_link_directories(TalkDirect_App 
@@ -36,6 +38,7 @@ target_include_directories(TalkDirect_App
     ${INCLUDE_DIR}
     PUBLIC
     ${EXT_DIR}/wxWidgets/include
+    ${OPENSSL_INCLUDE_DIR}
 )
 
 target_compile_definitions(TalkDirect_App 

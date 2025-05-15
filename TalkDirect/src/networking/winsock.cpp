@@ -199,6 +199,7 @@ char Winsock::Init() {
         "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
         "Sec-WebSocket-Protocol: chat\r\n"
         "Origin: https://talkdirect-api.onrender.com\r\n"
+        "User-Agent: TalkDirectClient/1.0\r\n"
         "\r\n";
 
     // Write to the Server to Upgrade Connection to Websocket

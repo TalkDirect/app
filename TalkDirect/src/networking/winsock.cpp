@@ -46,7 +46,7 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
     int headerSize = 6;
     if (dataSize > 125) {
-        headerSize += (dataSize <= 65535) ? 2 : 8; // Extended payload length
+        headerSize += (dataSize <= 65535) ? 2 : 8; // Simply means if dataSize is less than or = to 65535 add on two bits else add on 8
     }
 
     // current number of bits written to buffer
@@ -82,7 +82,6 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     offset += 4;
     memcpy(buffer + offset, data, dataSize);
 
-    // TODO: Make this into a SSL_write since the connection is now a HTTPS connection
     iResult = SSL_write(currentConnection.socket_ssl, buffer, dataSize+offset);
     if (iResult == SOCKET_ERROR) {
         WSACleanup();
@@ -96,14 +95,25 @@ unsigned char* Winsock::ReceiveData() {
     return ReceiveData(currentConnection);
 }
 
+/*
+Possible Reason & Fix to 101 Switching Protocol:
+
+Since the 101 Switching Protocol is a HTTP Message NOT a web socket frame, it will still get processed here but since it won't abide by
+the WS protocol it'll start to cause errors/bugs (message gets cut off at 125 characters since finbit doesn't exist & dataSize doesn't
+exist) thus doesn't know when the last frame is nor how long the current frame is so it just cuts off and returns a broken message,
+which is not ideal and pretty bad. we want to fix this.
+
+SOLUTION: We need to first check if it's HTTP message if so handle it as such else we can simply handle it as a normal web socket frame
+*/
 unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) { 
 
     int iResult;
     u_int64 size = 10240;
     int decodedBufLen = 0;
     char recvbuf[size] = {};
-    std::memset(recvbuf, 0, sizeof(recvbuf));
     unsigned char* decodedBuffer = new unsigned char[size];
+    std::memset(recvbuf, 0, sizeof(recvbuf));
+    std::memset(decodedBuffer, 0, sizeof(decodedBuffer));
 
     while (true) {
         // TODO: Make this into a SSL_Read since the connection is now a HTTPS connection
@@ -112,8 +122,19 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
             std::cout << "Bytes recieved: " << iResult << std::endl;
             u_int64 offset = 0;
 
-            // Getting items in recvbuf[0] / byte 1
+            // Simple check to make sure we're not getting a HTTP message and interpreting it as a websocket frame
+            // doing this by just checking and ensure first 4 bytes (header bitfields) are not encoded to HTT
+            bool httpMessageCheckFail = false;
+            for (int i = 0; i < 3; i++) {
+                if (recvbuf[i] == 0x72 || recvbuf[i] == 0x54) {
+                    if (!httpMessageCheckFail) {
+                        httpMessageCheckFail = true;
+                    }
+                    return decodedBuffer;
+                }
+            }
 
+            // Getting items in recvbuf[0] / byte 1
             unsigned char finBit = recvbuf[offset] & 0x80;
             unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
 
@@ -210,17 +231,6 @@ char Winsock::Init() {
         return 0x01;
     }
 
-    // Return the server's acceptance message
-    std::string websiteHTML;
-    char buffer[1000];
-    while ((iResult = SSL_read(currentConnection.socket_ssl, buffer, 1000)) > 0) {
-        int i = 0;
-        while (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r') {
-            websiteHTML += buffer[i];
-            i += 1;
-        }
-    }
-    std::printf(buffer);
     return 0x00;
 };
 
@@ -262,8 +272,6 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
         return tempConnection;
     }
 
-    std::cout << "Successfully created addrinfo" << std::endl;
-
     ptr = result;
     tempConnection.currentSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
     if (tempConnection.currentSocket == INVALID_SOCKET) {
@@ -271,7 +279,6 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
         WSACleanup();
         return tempConnection;
     }
-    std::cout << "Successfully created socket with addrinfo" << std::endl;
 
     iResult = connect(tempConnection.currentSocket, ptr->ai_addr, (int)ptr->ai_addrlen );
     if (iResult == SOCKET_ERROR) {
@@ -279,7 +286,6 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
         WSACleanup();
         return tempConnection;
     }
-    std::cout << "Successfully connected socket with addrinfo" << std::endl;
     // Initialize OpenSSL
     SSL_library_init();
     SSL_load_error_strings();
@@ -289,8 +295,6 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
         std::cerr << "SSL_CTX_new failed\n";
         return tempConnection;
     }
-
-    std::cout << "Successfully finished 1/2 of connecting socket to an SSL" << std::endl;
 
     SSL* ssl = SSL_new(ctx);
     SSL_set_fd(ssl, (int)tempConnection.currentSocket);

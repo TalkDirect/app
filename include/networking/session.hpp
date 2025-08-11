@@ -41,6 +41,8 @@ class Session {
         networkQueue<unsigned char*> nQueue;
         std::atomic<boolean> sessionActive = false;
 
+        bool checkEmptyBuffer(unsigned char* buffer);
+
 
 };
 

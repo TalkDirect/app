@@ -9,8 +9,9 @@ sessionChatPanel::sessionChatPanel(Frame* currFrame)
 
     sessionChatPanel::currFrame = currFrame;
     /* Making Text & Button GUI Elements */
-    chatInputTextField = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_MULTILINE);
-    chatTextMessages = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_READONLY | wxTE_MULTILINE);
+    wxSize textBoxSize = wxSize(250, 50);
+    chatInputTextField = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, textBoxSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_MULTILINE);
+    chatTextMessages = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, textBoxSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_READONLY | wxTE_MULTILINE);
     auto* sendButton = new wxButton(this, ID_Send_Btn_Clicked, "Send");
     auto* vbox = new wxBoxSizer(wxVERTICAL);
 
@@ -19,13 +20,10 @@ sessionChatPanel::sessionChatPanel(Frame* currFrame)
     // Text Field Styles
 
     /* Start to Format GUI Elements */
-    vbox->AddStretchSpacer();
     vbox->Add(chatInputTextField, 0, wxALIGN_CENTER | wxALL, 10);
-    vbox->AddStretchSpacer();
     vbox->Add(chatTextMessages, 0, wxALIGN_CENTER | wxALL, 10);
     vbox->AddStretchSpacer();
     vbox->Add(sendButton, 0, wxALIGN_CENTER | wxALL, 10);
-    vbox->AddStretchSpacer();
 
     SetSizer(vbox);
 

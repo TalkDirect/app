@@ -33,8 +33,8 @@ void sessionManager::DisconnectSession() {
 };
 
 void sessionManager::Recv() {
+    networkQueue<unsigned char*>* dataQueue = currSession->getNQueue();
     while (running) {
-        networkQueue<unsigned char*>* dataQueue = currSession->getNQueue();
         unsigned char* recvData = dataQueue->pop();
         
         wxThreadEvent* evt = new wxThreadEvent(EVT_SOCKET_DATA_RECEIVED_FRAME);

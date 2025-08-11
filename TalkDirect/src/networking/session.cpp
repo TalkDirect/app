@@ -44,8 +44,10 @@ void Session::ReceiveData() {
     // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
     while (sessionActive && websocket->validSocket()) {
         unsigned char* receivedData = Session::websocket->onRetrieveMessage();
-        nQueue.push(receivedData);
-        std::cout << receivedData << std::endl;
+        if (!checkEmptyBuffer(receivedData)) {
+            nQueue.push(receivedData);
+            std::cout << receivedData << std::endl;
+        }
     }
 };
 
@@ -64,3 +66,10 @@ webSocket* Session::getWebSocket() {
 networkQueue<unsigned char*>* Session::getNQueue() {
     return &nQueue;
 };
+
+// Checks for empty buffer by just checking if all bytes in the two pointers are 0 or not
+bool Session::checkEmptyBuffer(unsigned char* buffer) {
+    char zero_buffer[sizeof(buffer)]; 
+    std::memset(zero_buffer, 0, sizeof(buffer)); 
+    return std::memcmp(buffer, zero_buffer, sizeof(buffer)) == 0;
+}

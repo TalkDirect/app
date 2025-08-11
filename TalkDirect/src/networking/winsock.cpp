@@ -95,16 +95,6 @@ unsigned char* Winsock::ReceiveData() {
     return ReceiveData(currentConnection);
 }
 
-/*
-Possible Reason & Fix to 101 Switching Protocol:
-
-Since the 101 Switching Protocol is a HTTP Message NOT a web socket frame, it will still get processed here but since it won't abide by
-the WS protocol it'll start to cause errors/bugs (message gets cut off at 125 characters since finbit doesn't exist & dataSize doesn't
-exist) thus doesn't know when the last frame is nor how long the current frame is so it just cuts off and returns a broken message,
-which is not ideal and pretty bad. we want to fix this.
-
-SOLUTION: We need to first check if it's HTTP message if so handle it as such else we can simply handle it as a normal web socket frame
-*/
 unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) { 
 
     int iResult;
@@ -139,7 +129,6 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
             unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
 
             // Getting items in recvbuf[1] / byte 2
-
             u_int64 dataSize = recvbuf[offset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
 
             // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes

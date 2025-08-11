@@ -10,11 +10,11 @@ sessionManager::~sessionManager() {
     DisconnectSession();
 };
 
-void sessionManager::ConnectSession(int sessionid) {  // <- Likely crashing here
+void sessionManager::ConnectSession(int sessionid) {
     running = true;
     std::cout << "Creating session with ID: " << sessionid << std::endl;
 
-    currSession = new Session(sessionid);  // <- EVEN MORE Likely crashing here
+    currSession = new Session(sessionid);
 
     sessionRecvThread = std::thread(std::bind(&sessionManager::Recv, this));
     std::cout << "Started Socket Receiver Thread" << std::endl;

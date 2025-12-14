@@ -116,7 +116,7 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
             // doing this by just checking and ensure first 4 bytes (header bitfields) are not encoded to HTT
             bool httpMessageCheckFail = false;
             for (int i = 0; i < 3; i++) {
-                if (recvbuf[i] == 0x72 || recvbuf[i] == 0x54) {
+                if (recvbuf[i] == 0x72 || recvbuf[i] == 0x54) { // 0x72 = 'H' byte code; 0x54 = 'T' byte code
                     if (!httpMessageCheckFail) {
                         httpMessageCheckFail = true;
                     }

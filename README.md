@@ -16,7 +16,7 @@ It is built in **C++**, using **Win32 Winsock** for TCP-based socket communicati
 
 ## Compile & Build Instructions
 
-> ⚠️ **Note:** You must have a properly compiled version of `wxWidgets` installed inside the `./ext` directory.
+**Note:** You must have a properly compiled version of `wxWidgets` installed inside the `./ext` directory.
 
 ### 1. Prerequisites
 

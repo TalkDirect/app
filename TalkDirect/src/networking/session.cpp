@@ -41,6 +41,7 @@ void Session::CreateSession(int SessionID) {
 };
 
 // TODO: Not a fan of this function being a void, will have to edit this later to make it a bool so its more useful
+// same potential issue as function below
 void Session::CloseSession() {
     // Mark This session inactive and flush out the queue
     sessionActive.store(false);
@@ -54,7 +55,8 @@ void Session::CloseSession() {
         RecvThread.join();
     }
 };
-
+// TODO: Experiencing a race condition between socket shutdowning & closing or this thread ceasing and joining back with main thread before then
+// must fix
 void Session::ReceiveData() {
     // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
     while (sessionActive.load(std::memory_order_relaxed) && websocket->validSocket()) {

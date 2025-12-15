@@ -40,19 +40,26 @@ Winsock::~Winsock() {
 
 char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     int iResult;
-
+    int payloadIndicator = dataSize;
+    if (dataSize > 65535) {
+        payloadIndicator = 127;
+    } else if (dataSize > 125) {
+        payloadIndicator = 126;
+    }
     // Setting up the data to become the TCP Header Information
-    struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, dataSize};
+    struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, payloadIndicator};
     unsigned char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
-    memcpy(msgHeaderField.maskKey, maskingKey, 4);
 
     assert(sizeof(&data) != 0 && "For some reason we're sending over no data, this should never happen it's wasteful and pointless to do this. Issa bug");
 
     // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
-    int headerSize = 6;
-    if (dataSize > 125) {
-        headerSize += (dataSize <= 65535) ? 2 : 8; // Simply means if dataSize is less than or = to 65535 add on two bits else add on 8
+    int headerSize = 2;
+    if (payloadIndicator > 125) {
+        headerSize += (payloadIndicator == 126) ? 2 : 8; // Simply means if dataSize is less than or = to 65535 add on two bits else add on 8
     }
+    
+    // These bits are for masking key
+    headerSize += 4;
 
     // current number of bits written to buffer
     int offset = 0;
@@ -63,31 +70,31 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
                 | (msgHeaderField.rsv1 << 6)
                 | (msgHeaderField.rsv2 << 5)
                 | (msgHeaderField.rsv3 << 4)
-                | (msgHeaderField.Opcode);
+                | (msgHeaderField.Opcode & 0x0F);
 
-    buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen);
+    buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen & 0x7F);
 
     // Check if we need to extend payload length past 7 bits or not
-    if (dataSize > PAYLOAD_LENGTH_REG_SIZE+0) {
-        if (dataSize <= PAYLOAD_LENGTH_EXT_SIZE+0) {
-            buffer[offset++] = (dataSize >> 8) & PAYLOAD_LENGTH_EXT_SIZE_MASK;
-            buffer[offset++] = dataSize & PAYLOAD_LENGTH_EXT_SIZE_MASK;
-        } else {
-            for (int i = 7; i >= 0; i--)
-                buffer[offset++] = (dataSize >> (i * 8)) & PAYLOAD_LENGTH_EXT_SIZE_MASK;
-        }
+    if (payloadIndicator == 126) {
+        buffer[offset++] = (dataSize >> 8) & 0xFF;
+        buffer[offset++] = dataSize & 0xFF;
+    } else if (payloadIndicator == 127) {
+        uint64_t fullDataSize = (uint64_t)dataSize;
+        for (int i = 7; i >= 0; i--)
+            buffer[offset++] = (fullDataSize >> (i*8)) & 0xFF;
     }
 
     memcpy(buffer + offset, maskingKey, 4);
+    offset += 4;
 
     // XOR the data buffer before we copy it over to be sent off
     for (int i = 0; i < dataSize; i++)
         data[i] ^= maskingKey[i % 4];
 
-    offset += 4;
     memcpy(buffer + offset, data, dataSize);
+    offset +=dataSize;
 
-    iResult = SSL_write(currentConnection.socket_ssl, buffer, dataSize+offset);
+    iResult = SSL_write(currentConnection.socket_ssl, buffer, offset);
     if (iResult == SOCKET_ERROR) {
         WSACleanup();
         validConnection = false;
@@ -104,14 +111,15 @@ unsigned char* Winsock::ReceiveData() {
 unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) { 
 
     int iResult;
-    u_int64 size = 10240;
+    u_int64 size = 1024000;
     int decodedBufLen = 0;
     char recvbuf[size] = {};
     unsigned char* decodedBuffer = new unsigned char[size];
     std::memset(recvbuf, 0, sizeof(recvbuf));
     std::memset(decodedBuffer, 0, sizeof(decodedBuffer));
+    bool working = true;
 
-    while (true) {
+    while (working) {
         // TODO: Make this into a SSL_Read since the connection is now a HTTPS connection
         iResult = SSL_read(Connection.socket_ssl, recvbuf, size);
         if (iResult > 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
@@ -127,7 +135,7 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
             }
             
             // Getting items in recvbuf[0] / byte 1
-            unsigned char finBit = recvbuf[offset] & 0x80;
+            unsigned char finBit = (recvbuf[offset] >> 7) & 0x01;
             unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
 
             // Getting items in recvbuf[1] / byte 2
@@ -154,15 +162,15 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
             
             for (int i = decodedBufLen; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
                 decodedBuffer[decodedBufLen++] = recvbuf[offset++];
-            if (finBit != 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
+            if (finBit == 1) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
                 std::cout << "Completed message" << std::endl;
-                break;
+                working = false;
+            } else if (finBit == 0 && dataType == 0) {
+                std::cout << "Broken message, attempting to pull more data from recv()" << std::endl;
             }
-            std::cout << "Broken message, attempting to pull more data from recv()" << std::endl;
         }
         
         else if (iResult == 0) {
-            std::cout << "Recv broken" << std::endl;
             break;
         } else {// Error could be WSAEWOULDBLOCK since we're in non-blocking mode if so, ignore it and move on, else return a nullptr and break out of function
             int sslError = SSL_get_error(currentConnection.socket_ssl, iResult);

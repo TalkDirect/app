@@ -64,7 +64,7 @@ void sessionChatPanel::OnSendButton(wxCommandEvent& event) {
     sessionMgr->OnSend(buffer, bufferSize);
 
     // For now, just add on the string we sent onto the chat window
-    chatTextMessages->AppendText("Message: " + inputMessageString + " \n");
+    //chatTextMessages->AppendText("Message: " + inputMessageString + " \n");
 
     delete[] buffer;
 };

@@ -17,7 +17,7 @@ Session::~Session() {
     delete websocket;
 };
 
-void Session::execute() {
+/*void Session::execute() {
     std::thread RecvThread(std::bind(&Session::ReceiveData, this));
     RecvThread.detach();
     std::cout << "Started Socket Receiver Thread" << std::endl;
@@ -30,7 +30,7 @@ void Session::execute() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::cout << "Exiting execute Function" << std::endl;
-};
+};*/
 
 void Session::CreateSession(int SessionID) {
     // First, get a new websocket up and running
@@ -42,13 +42,17 @@ void Session::CreateSession(int SessionID) {
 
 // TODO: Not a fan of this function being a void, will have to edit this later to make it a bool so its more useful
 void Session::CloseSession() {
+    // Mark This session inactive and flush out the queue
     sessionActive.store(false);
     nQueue.empty();
-    // Made it a simple function call in winsock.cpp
     std::cout << "Starting Disconnecting Socket Process from Current Session." << std::endl;
+    // Start to disconnect the websocket
     websocket->DiscounnectSocket();
-
-    RecvThread.join();
+    
+    // Attempt to join thread back with main thread once thread running receiveData() sucessfully leaves
+    if (RecvThread.joinable()) {
+        RecvThread.join();
+    }
 };
 
 void Session::ReceiveData() {
@@ -72,7 +76,7 @@ void Session::SendData(unsigned char* data, int dataSize) {
     Session::websocket->onSendMessage(data, dataSize);
 };
 
-boolean Session::isActive() {
+bool Session::isActive() {
     return Session::sessionActive;
 };
 

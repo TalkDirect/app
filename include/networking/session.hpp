@@ -30,9 +30,9 @@ class Session {
         /**
          * Primary Function for Session Class, starts the async process of recving buffers from the socket while also sending them
          */
-        void execute();
+        //void execute();
 
-        boolean isActive();
+        bool isActive();
         
     private:
         int sessionID;

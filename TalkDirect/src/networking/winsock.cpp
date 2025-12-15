@@ -120,35 +120,32 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
 
             // Simple check to make sure we're not getting a HTTP message and interpreting it as a websocket frame
             // doing this by just checking and ensure first 4 bytes (header bitfields) are not encoded to HTT
-            bool httpMessageCheckFail = false;
             for (int i = 0; i < 3; i++) {
-                if (recvbuf[i] == 0x72 || recvbuf[i] == 0x54) { // 0x72 = 'H' byte code; 0x54 = 'T' byte code
-                    if (!httpMessageCheckFail) {
-                        httpMessageCheckFail = true;
-                    }
+                if (recvbuf[i] == 0x72 || recvbuf[i] == 0x54 && decodedBufLen == 0) { // 0x72 = 'H' byte code; 0x54 = 'T' byte code
                     return decodedBuffer;
                 }
             }
-
+            
             // Getting items in recvbuf[0] / byte 1
             unsigned char finBit = recvbuf[offset] & 0x80;
             unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
 
             // Getting items in recvbuf[1] / byte 2
             u_int64 dataSize = recvbuf[offset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
-
+            
             // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
             if (dataSize > 125) {
                 if (dataSize == 126) { // PayloadLen is 2 unsigned bytes (16 bits) long
-                    dataSize = (recvbuf[offset++] << 8) | recvbuf[offset++];
-
+                    dataSize = (static_cast<uint16_t>(static_cast<uint8_t>(recvbuf[offset++])) << 8) | 
+                            (static_cast<uint8_t>(recvbuf[offset++]));
                 } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
+                    dataSize = 0;
                     for (int i = 0; i < 8; i++) {
-                        dataSize = (dataSize << 8) | recvbuf[offset++];
+                        // Have not properly tested if this static_cast will 100% work but it should based on my knowledge
+                        dataSize = (dataSize << 8) | (static_cast<uint8_t>(recvbuf[offset++]));
                     }
                 }
             }
-
             /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
             signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
             increment past it and ignore it.
@@ -157,17 +154,15 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
             
             for (int i = decodedBufLen; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
                 decodedBuffer[decodedBufLen++] = recvbuf[offset++];
-
             if (finBit != 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
-                std::cout << "completed message" << std::endl;
+                std::cout << "Completed message" << std::endl;
                 break;
             }
-
-            std::cout << "broken message, attempting to pull more data from recv()" << std::endl;
+            std::cout << "Broken message, attempting to pull more data from recv()" << std::endl;
         }
         
         else if (iResult == 0) {
-            std::cout << "Connectioned Closed" << std::endl;
+            std::cout << "Recv broken" << std::endl;
             break;
         } else {// Error could be WSAEWOULDBLOCK since we're in non-blocking mode if so, ignore it and move on, else return a nullptr and break out of function
             int sslError = SSL_get_error(currentConnection.socket_ssl, iResult);

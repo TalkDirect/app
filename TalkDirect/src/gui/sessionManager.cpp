@@ -8,6 +8,7 @@ sessionManager::sessionManager(wxEvtHandler* handler)
 
 sessionManager::~sessionManager() {
     DisconnectSession();
+    delete currSession;
 };
 
 void sessionManager::ConnectSession(int sessionid) {
@@ -22,14 +23,11 @@ void sessionManager::ConnectSession(int sessionid) {
 
 void sessionManager::DisconnectSession() {
     running = false;
-    if (sessionRecvThread.joinable()) {
-        sessionRecvThread.join();
-    }
-    if (sessionSendThread.joinable()) {
-        sessionSendThread.join();
-    }
+    std::cout << "GUI Receieved Request to End Session, beginning the complete shutdown process." << std::endl;
+    //std::cout << "Joined GUI's Recv Thread, moving towards currSession Logic.";
+    currSession->CloseSession();
+    std::cout << "Now deleting current session." << std::endl;
     delete currSession;
-    currSession = nullptr;
 };
 
 void sessionManager::Recv() {

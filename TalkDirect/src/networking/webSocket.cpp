@@ -15,7 +15,7 @@ webSocket::webSocket() {
 }
 
 webSocket::~webSocket() {
-    webSocket::DiscounnectSocket();
+    std::cout << "Now deleting current winsock." << std::endl;
     delete winsock;
 }
 
@@ -26,7 +26,7 @@ bool webSocket::ConnectSocket(int sessionID) {
     winsock = new Winsock(url, sessionID);
 
     // Check if we were able to successfully create a socket
-    if (!winsock->validConnection()) {
+    if (!winsock->getValidConnection()) {
         readyState = ReadyStates::CLOSED;
         return false;
     }
@@ -79,7 +79,7 @@ void webSocket::SendMessages(unsigned char data[], int dataSize, int dataType) {
 }
 
 unsigned char* webSocket::RecieveMessages() {
-    if (false) {
+    if (!validSocket()) {
         std::cout << "Socket is not open to recieve data, returning" << std::endl;
         return nullptr;
     }
@@ -95,5 +95,5 @@ unsigned char* webSocket::RecieveMessages() {
 }
 
 bool webSocket::validSocket() {
-    return winsock->validConnection();
+    return winsock->getValidConnection();
 }

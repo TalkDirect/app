@@ -9,13 +9,12 @@ Session::Session(int SessionID) {
     if (SessionID < 0)
         return;
     CreateSession(SessionID);
-    Session::sessionActive = true;
+    sessionActive.store(true);
 };
 
 Session::~Session() {
-    Session::sessionActive = false;
-    nQueue.empty();
-    delete Session::websocket;
+    std::cout << "Now deleting current websocket." << std::endl;
+    delete websocket;
 };
 
 void Session::execute() {
@@ -36,19 +35,37 @@ void Session::execute() {
 void Session::CreateSession(int SessionID) {
     // First, get a new websocket up and running
     websocket = new webSocket(SessionID);
-    std::thread RecvThread(std::bind(&Session::ReceiveData, this));
-    RecvThread.detach();
+    auto bound_thread = std::bind(&Session::ReceiveData, this);
+    RecvThread = std::thread(bound_thread);
+
+};
+
+// TODO: Not a fan of this function being a void, will have to edit this later to make it a bool so its more useful
+void Session::CloseSession() {
+    sessionActive.store(false);
+    nQueue.empty();
+    // Made it a simple function call in winsock.cpp
+    std::cout << "Starting Disconnecting Socket Process from Current Session." << std::endl;
+    websocket->DiscounnectSocket();
+
+    RecvThread.join();
 };
 
 void Session::ReceiveData() {
     // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
-    while (sessionActive && websocket->validSocket()) {
+    while (sessionActive.load(std::memory_order_relaxed) && websocket->validSocket()) {
         unsigned char* receivedData = Session::websocket->onRetrieveMessage();
+
+        if (receivedData == nullptr || !Session::websocket->validSocket() || !sessionActive.load()) {
+            break;
+        }
+
         if (!checkEmptyBuffer(receivedData)) {
             nQueue.push(receivedData);
             std::cout << receivedData << std::endl;
         }
     }
+    std::cout << "Exiting Current Session's Recv Function Thread" << std::endl;
 };
 
 void Session::SendData(unsigned char* data, int dataSize) {

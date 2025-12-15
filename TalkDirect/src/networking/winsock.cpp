@@ -29,7 +29,12 @@ Winsock::Winsock(const char* socketUrl, int SessionID) {
 };
 
 Winsock::~Winsock() {
-    DisconnectSocket();
+    shutdown(currentConnection.currentSocket, SD_BOTH);
+    SSL_free(currentConnection.socket_ssl);
+    SSL_CTX_free(ctx);
+    closesocket(currentConnection.currentSocket);
+    WSACleanup();
+    std::cout << "Winsock deleted." << std::endl;
 };
 
 
@@ -85,6 +90,7 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     iResult = SSL_write(currentConnection.socket_ssl, buffer, dataSize+offset);
     if (iResult == SOCKET_ERROR) {
         WSACleanup();
+        validConnection = false;
         std::cout << "error sending bytes" << std::endl;
         return 0x01;
     }
@@ -169,6 +175,7 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                 int error = WSAGetLastError();
                 if (error != WSAEWOULDBLOCK) {
                     std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
+                    validConnection = false;
                     return nullptr;
                 }
             }
@@ -219,17 +226,16 @@ char Winsock::Init() {
         WSACleanup();
         return 0x01;
     }
+    validConnection = true;
 
     return 0x00;
 };
 
 void Winsock::DisconnectSocket() {
-    shutdown(currentConnection.currentSocket, SD_BOTH);
-    SSL_free(currentConnection.socket_ssl);
-    SSL_CTX_free(ctx);
-    closesocket(currentConnection.currentSocket);
+    validConnection = false;
+    std::cout << "Now Starting Official Server Session Shutdown Socket Side." << std::endl;
     Winsock::CloseServerSession();
-    WSACleanup();
+    std::cout << "Finished Official Server Session Shutdown Socket Side." << std::endl;
 };
 
 SOCKET_CONNECTION Winsock::CreateSocket() {
@@ -265,6 +271,7 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
     tempConnection.currentSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
     if (tempConnection.currentSocket == INVALID_SOCKET) {
         std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
+        validConnection = false;
         WSACleanup();
         return tempConnection;
     }
@@ -272,6 +279,7 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
     iResult = connect(tempConnection.currentSocket, ptr->ai_addr, (int)ptr->ai_addrlen );
     if (iResult == SOCKET_ERROR) {
         std::cout << "socket connection failed: \n" << WSAGetLastError() << std::endl;
+        validConnection = false;
         WSACleanup();
         return tempConnection;
     }
@@ -295,6 +303,7 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
         SSL_CTX_free(ctx);
         closesocket(tempConnection.currentSocket);
         WSACleanup();
+        validConnection = false;
         return tempConnection;
     }
     tempConnection.socket_ssl = ssl;
@@ -349,14 +358,11 @@ void Winsock::CloseServerSession() {
     char buffer[1000];
     std::string websiteHTML;
     // Simply Create a new Socket
-    SOCKET_CONNECTION initConnection = CreateSocket("talkdirect-api.onrender.com", "10000");
+    SOCKET_CONNECTION finalConnection = CreateSocket("talkdirect-api.onrender.com", "443");
     
-    // For now, just send a request to make a new Session, later we'll add on searching if session already exists
-    // TODO: Make this into a SSL_write since the connection is now a HTTPS connection
-    SSL_write(initConnection.socket_ssl, GET_HTTP.c_str(), GET_HTTP.size());
+    SSL_write(finalConnection.socket_ssl, GET_HTTP.c_str(), GET_HTTP.size());
     
-    // TODO: Make this into a SSL_read since the connection is now a HTTPS connection
-    while ((nDataLen = SSL_read(initConnection.socket_ssl, buffer, 1000)) > 0) {
+    while ((nDataLen = SSL_read(finalConnection.socket_ssl, buffer, 1000)) > 0) {
         int i = 0;
         while (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r') {
             websiteHTML += buffer[i];
@@ -367,12 +373,12 @@ void Winsock::CloseServerSession() {
     std::cout << "Able to Close Socket with SessionID:" + std::to_string(SessionID) << std::endl;
     // Close out socket
     memset(buffer, 0, 1000);
-    SSL_free(initConnection.socket_ssl);
+    SSL_free(finalConnection.socket_ssl);
     SSL_CTX_free(ctx);
-    shutdown(initConnection.currentSocket, SD_BOTH);
-    closesocket(initConnection.currentSocket);
+    shutdown(finalConnection.currentSocket, SD_BOTH);
+    closesocket(finalConnection.currentSocket);
 };
 
-bool Winsock::validConnection() {
-    return currentConnection.currentSocket != INVALID_SOCKET;
+bool Winsock::getValidConnection() {
+    return validConnection;
 }

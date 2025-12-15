@@ -18,7 +18,7 @@ class Session {
 
         // Can only create session on desktop app
         void CreateSession(int sessionID);
-        void LeaveSession();
+        void CloseSession();
         //client RetrieveClients();
 
         webSocket* getWebSocket();
@@ -40,6 +40,7 @@ class Session {
         video* m_video;
         networkQueue<unsigned char*> nQueue;
         std::atomic<boolean> sessionActive = false;
+        std::thread RecvThread;
 
         bool checkEmptyBuffer(unsigned char* buffer);
 

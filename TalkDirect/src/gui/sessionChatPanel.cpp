@@ -2,6 +2,7 @@
 
 
 #define SOCKET_STRING_DATA_IDENTIFIER 0x02
+#define BASE_BOX_WIDTH 500
 
 sessionChatPanel::sessionChatPanel(Frame* currFrame)
     :wxPanel(currFrame, wxID_ANY)
@@ -9,27 +10,38 @@ sessionChatPanel::sessionChatPanel(Frame* currFrame)
 
     sessionChatPanel::currFrame = currFrame;
     /* Making Text & Button GUI Elements */
-    wxSize textBoxSize = wxSize(250, 50);
-    chatInputTextField = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, textBoxSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_MULTILINE);
-    chatTextMessages = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, textBoxSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_READONLY | wxTE_MULTILINE);
-    auto* sendButton = new wxButton(this, ID_Send_Btn_Clicked, "Send");
-    auto* vbox = new wxBoxSizer(wxVERTICAL);
+    wxSize chatTextBoxSize = wxSize(BASE_BOX_WIDTH, 800);
+    wxSize chatInputTextBoxSize = wxSize(BASE_BOX_WIDTH, 45);
 
+    chatInputTextField = new wxTextCtrl(this, ID_Send_Btn_Clicked, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_MULTILINE);
+    chatTextMessages = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB | wxTE_READONLY | wxTE_MULTILINE);
+    auto* sendButton = new wxButton(this, ID_Send_Btn_Clicked, "Send");
+    auto* primaryVBox = new wxBoxSizer(wxVERTICAL);
+    auto* inputHBox = new wxBoxSizer(wxHORIZONTAL);
     /* Apply Any Additional Functionality/Styles */
 
     // Text Field Styles
 
     /* Start to Format GUI Elements */
-    vbox->Add(chatInputTextField, 0, wxALIGN_CENTER | wxALL, 10);
-    vbox->Add(chatTextMessages, 0, wxALIGN_CENTER | wxALL, 10);
-    vbox->AddStretchSpacer();
-    vbox->Add(sendButton, 0, wxALIGN_CENTER | wxALL, 10);
 
-    SetSizer(vbox);
+    /* Main Chat Sizer*/
+    primaryVBox->Add(chatTextMessages, 1, wxEXPAND | wxALL, 10);
+
+    /* Input Chat Sizer*/
+    inputHBox->Add(chatInputTextField, 1, wxEXPAND);
+    inputHBox->Add(sendButton, 0, wxLEFT, 5);
+
+    primaryVBox->Add(inputHBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+
+    SetSizer(primaryVBox);
+    primaryVBox->Fit(this);
+    primaryVBox->SetSizeHints(this);
 
     /* EVENT HANDLING */
     Bind(wxEVT_BUTTON, &sessionChatPanel::OnSendButton, this, ID_Send_Btn_Clicked);
     Bind(EVT_SOCKET_DATA_RECEIVED_PANEL, &sessionChatPanel::OnSessionMessageReceived, this);
+
+    /* RESIZING WINDOW FRAME TO MATCH UP WITH CONTENT*/
 };
 
 void sessionChatPanel::OnSendButton(wxCommandEvent& event) {

@@ -1,7 +1,7 @@
 #include "gui/frame.hpp"
 
 Frame::Frame()
-    :wxFrame(NULL, wxID_ANY, "TalkDirect")
+    :wxFrame(NULL, wxID_ANY, "TalkDirect", wxDefaultPosition, wxSize(300,400))
 {
     sessionMgr = new sessionManager(this);
     /* Making the Top Menu Bar */
@@ -34,6 +34,7 @@ void Frame::ShowSessionHostPanel(Frame* frame) {
     }
 
     currPanel = new sessionHostPanel(this);
+    this->SetSize(300, 400);
     Layout();
 }
 
@@ -41,7 +42,9 @@ void Frame::ShowSessionChatPanel(Frame* frame) {
     if (currPanel != nullptr) {
         currPanel->Destroy();
     }
+
     currPanel = new sessionChatPanel(this);
+    this->SetSize(900, 600);
     Layout();
 }
 
@@ -54,6 +57,7 @@ void Frame::OnConnect(wxCommandEvent& event) {
 };
 
 void Frame::OnDiscounnect(wxCommandEvent& event) {
+    sessionMgr->DisconnectSession();
     ShowSessionHostPanel(this);
 };
 

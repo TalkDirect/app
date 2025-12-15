@@ -43,7 +43,7 @@ class Winsock {
     unsigned char* ReceiveData();
     unsigned char* ReceiveData(SOCKET_CONNECTION Connection);
 
-    bool validConnection();
+    bool getValidConnection();
 
     void DisconnectSocket();
 
@@ -53,6 +53,7 @@ class Winsock {
     SOCKET_CONNECTION currentConnection;
     const char* socketUrl;
     int SessionID;
+    bool validConnection = false;
     //SSL* ssl;
     SSL_CTX* ctx;
 

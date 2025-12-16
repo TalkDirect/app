@@ -108,91 +108,124 @@ unsigned char* Winsock::ReceiveData() {
     return ReceiveData(currentConnection);
 }
 
+/* Function that can read data from websocket, contains an inner and outer loop.
+Outer Loop: Main job is to keep on reading data from socket connection until we read entire message
+Inner Loop: Job is to decode the data coming out of socket, if we're missing some data for the frame we keep looping back via Outer Loop till get the needed data
+Returns the decodedBuffer (might make into std::vector so its dynamic sizable) which then gets sent out to the ReceiveData Thread in Session class*/
 unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) { 
 
     int iResult;
-    u_int64 size = 1024000;
-    int decodedBufLen = 0;
-    u_int64 payloadLen = 0;
+    u_int64 size = 10240;
     unsigned char recvbuf[size] = {};
     unsigned char* decodedBuffer = new unsigned char[size];
+
+    u_int64 bytesDecodedFrameTotal = 0;
+    u_int64 bytesDecodedTotal = 0;
+    u_int64 currentFramePayloadLen = 0;
+    bool waitingForHeader = true;
+    bool isMessageFin = false;
     bool working = true;
 
-    while (working && validConnection) {
+    while (working && validConnection) {// Outer Loop: Main job is to read from socket when needed
+        
+        std::memset(recvbuf, 0, size);
         iResult = SSL_read(Connection.socket_ssl, recvbuf, size);
+        
         if (iResult >= 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
             std::cout << "Bytes recieved: " << iResult << std::endl;
-            u_int64 offset = 0;
+            u_int64 readOffset = 0;
+            while (readOffset < iResult) {// Inner Loop: Main job is to decode data, if reached end of payload length for current frame it breaks and reads more as needed
             
-            // Getting items in recvbuf[0] / byte 1
-            if (decodedBufLen == 0) {
-                bool finBit = recvbuf[offset] & 0x01;
-                unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
-                // Getting items in recvbuf[1] / byte 2
-                unsigned int dataSize = recvbuf[offset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
-
-                // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
-                if (dataSize > 125) {
-                    if (dataSize == 126) { // PayloadLen is 2 unsigned bytes (16 bits) long
-                        payloadLen = ((unsigned char)(recvbuf[offset++]) << 8) |  (unsigned char)(recvbuf[offset++]);
-                        std::cout << "Byte 1 of payloadLen: " << (int)recvbuf[2] << " Byte 2 of payloadLen: " << (int)recvbuf[3] << std::endl;
-                    } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
-                        payloadLen = 0;
-                        for (int i = 0; i < 8; i++) {
-                            payloadLen = (payloadLen << 8) | (static_cast<uint8_t>(recvbuf[offset++]));
-                        }
+                if (waitingForHeader) { // Checking to see if we to parse for our header
+                    if (iResult - readOffset < 2) {// Checking to see if we have te min amount of bytes for a header
+                        std::cout << "Partial Frame header, looping back for more data" << std::endl;
+                        break;
                     }
-                } else {
-                    payloadLen = dataSize;
+                    // Getting items in recvbuf[0] / byte 1
+                    isMessageFin = recvbuf[readOffset] & 0x80;
+                    unsigned char dataType = recvbuf[readOffset++] & DATA_TYPE_MASK;
+
+                    // Getting items in recvbuf[1] / byte 2
+                    unsigned int dataSize = recvbuf[readOffset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
+
+                    // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
+                    if (dataSize > 125) {
+                        
+                        if (dataSize == 126) { // PayloadLen is 2 unsigned bytes (16 bits) long
+                            currentFramePayloadLen = ((unsigned char)(recvbuf[readOffset++]) << 8) |  (unsigned char)(recvbuf[readOffset++]);
+                        
+                        } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
+                            currentFramePayloadLen = 0;
+                            
+                            for (int i = 0; i < 8; i++) {
+                                currentFramePayloadLen = (currentFramePayloadLen << 8) | (static_cast<uint8_t>(recvbuf[readOffset++]));
+                            }
+                        }
+                    } else {
+                        currentFramePayloadLen = dataSize;
+                    }
+                    
+                    std::cout << "Total Message Size: " << currentFramePayloadLen << std::endl;
+
+                    /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
+                    signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
+                    increment past it and ignore it.
+                    */
+                    if (bytesDecodedTotal == 0) {
+                        readOffset++;
+                        currentFramePayloadLen--;
+                    }
+                    
+                    waitingForHeader = false;
                 }
-                std::cout << "Total Message Size: " << payloadLen << std::endl;
+
+                // Dictates how much bytes to copy from recvBuf into our decodedBuffer
+                // Gets the bytes remaining in our frame AND chunk (how much bytes SSL_read said was supposed to be receiving)
+                // Then picks what ever is lower
+                u_int64 remainingInFrame = currentFramePayloadLen - bytesDecodedFrameTotal;
+                u_int64 avilableInChunk = iResult - readOffset;
+                u_int64 bytesToCopy = std::min(remainingInFrame, avilableInChunk);
+
+                std::cout << "bytes to Copy: " << bytesToCopy << std::endl;
+                
+                for (int i = 0; i < bytesToCopy; i++) {// start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
+                    decodedBuffer[bytesDecodedTotal++] = recvbuf[readOffset++];
+                    bytesDecodedFrameTotal++;
+                }
+                
+                std::cout << "Current Decoded Message Length: " << bytesDecodedTotal << std::endl;
+
+                if (bytesDecodedFrameTotal == currentFramePayloadLen) {// Checks if we fully decoded the current Frame's payload, if not we loop back through to grab more data
+                    std::cout << "Fully decoded Frame" << std::endl;
+                    if (isMessageFin) {// Just checks if the Finished bit is flipped to 1 or 0. If 1 then this is the last frame and we're finished
+                        std::cout << "Completed message" << std::endl;
+                        working = false;
+                        break;
+                    
+                    } else {// Not final frame, but this frame is finished, start process to grab new frame along with header
+                        std::cout << "Fragmented Message, looping back for more data" << std::endl;
+                        bytesDecodedFrameTotal = 0;
+                        waitingForHeader = true;
+                    }
+                }
             }
 
-            // Dictates how much bytes to copy from recvBuf into our decodedBuffer
-            int bytesToCopy = iResult - offset;
-
-            std::cout << "bytes to Copy: " << bytesToCopy << std::endl;
-            
-            /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
-            signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
-            increment past it and ignore it.
-            */
-            if (decodedBufLen == 0)
-                offset++;
-
-            
-            for (int i = 0; i < bytesToCopy; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
-                decodedBuffer[decodedBufLen++] = recvbuf[offset++];
-            std::cout << "Current Decoded Message Length: " << decodedBufLen << std::endl;
-            
-            // This will NEVER work properly since for now payloadLen is pretty much stuck at 4096 bytes long and our decodedBufLen will overtake this after 1 loop
-            bytesToCopy = payloadLen - decodedBufLen;
-
-            if (bytesToCopy == 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
-                std::cout << "Completed message" << std::endl;
-                working = false;
-            } else if (bytesToCopy > 0) {// Else, attempt to loop back and grab even more bytes to copy
-                std::cout << "Broken message, attempting to pull more data from recv()" << std::endl;
-            } else if (bytesToCopy < 0) {// If below 0 then decodedBuffer is longer than payloadLen, something went wrong (might change this logic later on)
-                std::cout << "Decoded too far." << std::endl;
-                working = false;
-            }
-        }
-
-        else {// Error could be WSAEWOULDBLOCK since we're in non-blocking mode if so, ignore it and move on, else return a nullptr and break out of function
+        } else {// Error could be WSAEWOULDBLOCK since we're in non-blocking mode if so, ignore it and move on, else return a nullptr and break out of function
             int sslError = SSL_get_error(currentConnection.socket_ssl, iResult);
+            
             if (sslError == SSL_ERROR_SYSCALL) {
                 int error = WSAGetLastError();
+                
                 if (error != WSAEWOULDBLOCK) {
                     std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
                     validConnection = false;
+                    
                     return nullptr;
                 }
             }
         }
     }
     return decodedBuffer;
-
 };
 
 char Winsock::Init() {

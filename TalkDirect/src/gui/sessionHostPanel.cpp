@@ -8,7 +8,7 @@ sessionHostPanel::sessionHostPanel(Frame* currFrame)
     auto* welcomeText = new wxStaticText(this, wxID_ANY, "Welcome to TalkDirect, please Host/Join a Session");
     auto* hostButton = new wxButton(this, ID_Host_Btn_Clicked, "Host");
     auto* joinButton = new wxButton(this, ID_Join_Btn_Clicked, "Join");
-    sessionIDTextField = new wxTextCtrl(this, ID_Session_Code_Entered, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+    sessionIDTextField = new wxTextCtrl(this, ID_Session_Code_Entered, "500", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
     auto* vbox = new wxBoxSizer(wxVERTICAL);
 
     /* Apply Any Additional Functionality/Styles */

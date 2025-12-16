@@ -207,6 +207,8 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                         bytesDecodedFrameTotal = 0;
                         waitingForHeader = true;
                     }
+                } else {
+                    std::cout << "Missing data for current frame, looping back to get more" << std::endl;
                 }
             }
 
@@ -407,7 +409,7 @@ void Winsock::InitServerSession(int SessionID) {
             i += 1;
         }
     }
-    std::cout << "Able to Create Socket with SessionID:" + std::to_string(SessionID) << std::endl;
+    std::cout << "Able to Create Socket with SessionID: " + std::to_string(SessionID) << std::endl;
     // Close out socket
     memset(buffer, 0, 1000);
     SSL_free(initConnection.socket_ssl);

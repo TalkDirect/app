@@ -29,25 +29,37 @@ Winsock::Winsock(const char* socketUrl, int SessionID) {
 };
 
 Winsock::~Winsock() {
-    DisconnectSocket();
+    shutdown(currentConnection.currentSocket, SD_BOTH);
+    SSL_free(currentConnection.socket_ssl);
+    SSL_CTX_free(ctx);
+    closesocket(currentConnection.currentSocket);
+    WSACleanup();
+    std::cout << "Winsock deleted." << std::endl;
 };
 
 
 char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     int iResult;
-
+    int payloadIndicator = dataSize;
+    if (dataSize > 65535) {
+        payloadIndicator = 127;
+    } else if (dataSize > 125) {
+        payloadIndicator = 126;
+    }
     // Setting up the data to become the TCP Header Information
-    struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, dataSize};
+    struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, payloadIndicator};
     unsigned char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
-    memcpy(msgHeaderField.maskKey, maskingKey, 4);
 
     assert(sizeof(&data) != 0 && "For some reason we're sending over no data, this should never happen it's wasteful and pointless to do this. Issa bug");
 
     // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
-    int headerSize = 6;
-    if (dataSize > 125) {
-        headerSize += (dataSize <= 65535) ? 2 : 8; // Simply means if dataSize is less than or = to 65535 add on two bits else add on 8
+    int headerSize = 2;
+    if (payloadIndicator > 125) {
+        headerSize += (payloadIndicator == 126) ? 2 : 8; // Simply means if dataSize is less than or = to 65535 add on two bits else add on 8
     }
+    
+    // These bits are for masking key
+    headerSize += 4;
 
     // current number of bits written to buffer
     int offset = 0;
@@ -58,33 +70,34 @@ char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
                 | (msgHeaderField.rsv1 << 6)
                 | (msgHeaderField.rsv2 << 5)
                 | (msgHeaderField.rsv3 << 4)
-                | (msgHeaderField.Opcode);
+                | (msgHeaderField.Opcode & 0x0F);
 
-    buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen);
+    buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen & 0x7F);
 
     // Check if we need to extend payload length past 7 bits or not
-    if (dataSize > PAYLOAD_LENGTH_REG_SIZE+0) {
-        if (dataSize <= PAYLOAD_LENGTH_EXT_SIZE+0) {
-            buffer[offset++] = (dataSize >> 8) & PAYLOAD_LENGTH_EXT_SIZE_MASK;
-            buffer[offset++] = dataSize & PAYLOAD_LENGTH_EXT_SIZE_MASK;
-        } else {
-            for (int i = 7; i >= 0; i--)
-                buffer[offset++] = (dataSize >> (i * 8)) & PAYLOAD_LENGTH_EXT_SIZE_MASK;
-        }
+    if (payloadIndicator == 126) {
+        buffer[offset++] = (dataSize >> 8) & 0xFF;
+        buffer[offset++] = dataSize & 0xFF;
+    } else if (payloadIndicator == 127) {
+        uint64_t fullDataSize = (uint64_t)dataSize;
+        for (int i = 7; i >= 0; i--)
+            buffer[offset++] = (fullDataSize >> (i*8)) & 0xFF;
     }
 
     memcpy(buffer + offset, maskingKey, 4);
+    offset += 4;
 
     // XOR the data buffer before we copy it over to be sent off
     for (int i = 0; i < dataSize; i++)
         data[i] ^= maskingKey[i % 4];
 
-    offset += 4;
     memcpy(buffer + offset, data, dataSize);
+    offset +=dataSize;
 
-    iResult = SSL_write(currentConnection.socket_ssl, buffer, dataSize+offset);
+    iResult = SSL_write(currentConnection.socket_ssl, buffer, offset);
     if (iResult == SOCKET_ERROR) {
         WSACleanup();
+        validConnection = false;
         std::cout << "error sending bytes" << std::endl;
         return 0x01;
     }
@@ -95,91 +108,131 @@ unsigned char* Winsock::ReceiveData() {
     return ReceiveData(currentConnection);
 }
 
+/* Function that can read data from websocket, contains an inner and outer loop.
+Outer Loop: Main job is to keep on reading data from socket connection until we read entire message
+Inner Loop: Job is to decode the data coming out of socket, if we're missing some data for the frame we keep looping back via Outer Loop till get the needed data
+Returns the decodedBuffer (might make into std::vector so its dynamic sizable) which then gets sent out to the ReceiveData Thread in Session class*/
 unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) { 
 
     int iResult;
     u_int64 size = 10240;
-    int decodedBufLen = 0;
-    char recvbuf[size] = {};
+    unsigned char recvbuf[size] = {};
     unsigned char* decodedBuffer = new unsigned char[size];
-    std::memset(recvbuf, 0, sizeof(recvbuf));
-    std::memset(decodedBuffer, 0, sizeof(decodedBuffer));
 
-    while (true) {
-        // TODO: Make this into a SSL_Read since the connection is now a HTTPS connection
-        iResult = SSL_read(Connection.socket_ssl, recvbuf, size);
-        if (iResult > 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
-            std::cout << "Bytes recieved: " << iResult << std::endl;
-            u_int64 offset = 0;
+    u_int64 bytesDecodedFrameTotal = 0;
+    u_int64 bytesDecodedTotal = 0;
+    u_int64 currentFramePayloadLen = 0;
+    bool waitingForHeader = true;
+    bool isMessageFin = false;
+    bool working = true;
 
-            // Simple check to make sure we're not getting a HTTP message and interpreting it as a websocket frame
-            // doing this by just checking and ensure first 4 bytes (header bitfields) are not encoded to HTT
-            bool httpMessageCheckFail = false;
-            for (int i = 0; i < 3; i++) {
-                if (recvbuf[i] == 0x72 || recvbuf[i] == 0x54) { // 0x72 = 'H' byte code; 0x54 = 'T' byte code
-                    if (!httpMessageCheckFail) {
-                        httpMessageCheckFail = true;
-                    }
-                    return decodedBuffer;
-                }
-            }
-
-            // Getting items in recvbuf[0] / byte 1
-            unsigned char finBit = recvbuf[offset] & 0x80;
-            unsigned char dataType = recvbuf[offset++] & DATA_TYPE_MASK;
-
-            // Getting items in recvbuf[1] / byte 2
-            u_int64 dataSize = recvbuf[offset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
-
-            // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
-            if (dataSize > 125) {
-                if (dataSize == 126) { // PayloadLen is 2 unsigned bytes (16 bits) long
-                    dataSize = (recvbuf[offset++] << 8) | recvbuf[offset++];
-
-                } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
-                    for (int i = 0; i < 8; i++) {
-                        dataSize = (dataSize << 8) | recvbuf[offset++];
-                    }
-                }
-            }
-
-            /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
-            signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
-            increment past it and ignore it.
-            */
-            offset++;
-            
-            for (int i = decodedBufLen; i < dataSize; i++) // start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
-                decodedBuffer[decodedBufLen++] = recvbuf[offset++];
-
-            if (finBit != 0) {// If FIN Bit in Websocket Header is 1 "True" means that this is the last message frame and we can finally send off the decodedBuffer
-                std::cout << "completed message" << std::endl;
-                break;
-            }
-
-            std::cout << "broken message, attempting to pull more data from recv()" << std::endl;
-        }
+    while (working && validConnection) {// Outer Loop: Main job is to read from socket when needed
         
-        else if (iResult == 0) {
-            std::cout << "Connectioned Closed" << std::endl;
-            break;
+        std::memset(recvbuf, 0, size);
+        iResult = SSL_read(Connection.socket_ssl, recvbuf, size);
+        
+        if (iResult >= 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
+            std::cout << "Bytes recieved: " << iResult << std::endl;
+            u_int64 readOffset = 0;
+            while (readOffset < iResult) {// Inner Loop: Main job is to decode data, if reached end of payload length for current frame it breaks and reads more as needed
+            
+                if (waitingForHeader) { // Checking to see if we to parse for our header
+                    if (iResult - readOffset < 2) {// Checking to see if we have te min amount of bytes for a header
+                        std::cout << "Partial Frame header, looping back for more data" << std::endl;
+                        break;
+                    }
+                    // Getting items in recvbuf[0] / byte 1
+                    isMessageFin = recvbuf[readOffset] & 0x80;
+                    unsigned char dataType = recvbuf[readOffset++] & DATA_TYPE_MASK;
+
+                    // Getting items in recvbuf[1] / byte 2
+                    unsigned int dataSize = recvbuf[readOffset++] & PAYLOAD_LENGTH_REG_SIZE_MASK;
+
+                    // Getting payloadLen, if smaller than 126 will be inside the 7 bits above, if not it'll be in 2 bytes or 8 bytes
+                    if (dataSize > 125) {
+                        
+                        if (dataSize == 126) { // PayloadLen is 2 unsigned bytes (16 bits) long
+                            currentFramePayloadLen = ((unsigned char)(recvbuf[readOffset++]) << 8) |  (unsigned char)(recvbuf[readOffset++]);
+                        
+                        } else if (dataSize == 127) { // else it's encoded in a 64 bit uint that we'll have to keep looping thru
+                            currentFramePayloadLen = 0;
+                            
+                            for (int i = 0; i < 8; i++) {
+                                currentFramePayloadLen = (currentFramePayloadLen << 8) | (static_cast<uint8_t>(recvbuf[readOffset++]));
+                            }
+                        }
+                    } else {
+                        currentFramePayloadLen = dataSize;
+                    }
+                    
+                    std::cout << "Total Message Size: " << currentFramePayloadLen << std::endl;
+
+                    /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
+                    signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
+                    increment past it and ignore it.
+                    */
+                    if (bytesDecodedTotal == 0) {
+                        readOffset++;
+                        currentFramePayloadLen--;
+                    }
+                    
+                    waitingForHeader = false;
+                }
+
+                // Dictates how much bytes to copy from recvBuf into our decodedBuffer
+                // Gets the bytes remaining in our frame AND chunk (how much bytes SSL_read said was supposed to be receiving)
+                // Then picks what ever is lower
+                u_int64 remainingInFrame = currentFramePayloadLen - bytesDecodedFrameTotal;
+                u_int64 avilableInChunk = iResult - readOffset;
+                u_int64 bytesToCopy = std::min(remainingInFrame, avilableInChunk);
+
+                std::cout << "bytes to Copy: " << bytesToCopy << std::endl;
+                
+                for (int i = 0; i < bytesToCopy; i++) {// start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
+                    decodedBuffer[bytesDecodedTotal++] = recvbuf[readOffset++];
+                    bytesDecodedFrameTotal++;
+                }
+                
+                std::cout << "Current Decoded Message Length: " << bytesDecodedTotal << std::endl;
+
+                if (bytesDecodedFrameTotal == currentFramePayloadLen) {// Checks if we fully decoded the current Frame's payload, if not we loop back through to grab more data
+                    std::cout << "Fully decoded Frame" << std::endl;
+                    if (isMessageFin) {// Just checks if the Finished bit is flipped to 1 or 0. If 1 then this is the last frame and we're finished
+                        std::cout << "Completed message" << std::endl;
+                        working = false;
+                        break;
+                    
+                    } else {// Not final frame, but this frame is finished, start process to grab new frame along with header
+                        std::cout << "Fragmented Message, looping back for more data" << std::endl;
+                        bytesDecodedFrameTotal = 0;
+                        waitingForHeader = true;
+                    }
+                } else {
+                    std::cout << "Missing data for current frame, looping back to get more" << std::endl;
+                }
+            }
+
         } else {// Error could be WSAEWOULDBLOCK since we're in non-blocking mode if so, ignore it and move on, else return a nullptr and break out of function
             int sslError = SSL_get_error(currentConnection.socket_ssl, iResult);
+            
             if (sslError == SSL_ERROR_SYSCALL) {
                 int error = WSAGetLastError();
+                
                 if (error != WSAEWOULDBLOCK) {
                     std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
+                    validConnection = false;
+                    
                     return nullptr;
                 }
             }
         }
     }
     return decodedBuffer;
-
 };
 
 char Winsock::Init() {
     int iResult;
+    char buf[512];
 
     iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
     if (iResult != 0)
@@ -219,17 +272,42 @@ char Winsock::Init() {
         WSACleanup();
         return 0x01;
     }
+    validConnection = true;
+
+    
+    while (true) {
+        iResult = SSL_read(currentConnection.socket_ssl, buf, 512);
+
+        if (iResult >= 0) {
+            std::cout << "Connection was Cleanly upgraded from HTTP to WS" << std::endl;
+            break;
+        }
+        else {
+            int sslError = SSL_get_error(currentConnection.socket_ssl, iResult);
+                if (sslError == SSL_ERROR_SYSCALL) {
+                int error = WSAGetLastError();
+                
+                if (error == WSAEWOULDBLOCK) {
+                    // Winsock non-blocking signal: buffer is empty. We are done.
+                    break; 
+                } else {
+                    // Fatal Winsock error
+                    std::cout << "Fatal socket error during buffer upgrading clear: " << error << std::endl;
+                    validConnection = false;
+                    break;
+                }
+            }
+        }
+    }
 
     return 0x00;
 };
 
 void Winsock::DisconnectSocket() {
-    shutdown(currentConnection.currentSocket, SD_BOTH);
-    SSL_free(currentConnection.socket_ssl);
-    SSL_CTX_free(ctx);
-    closesocket(currentConnection.currentSocket);
+    validConnection = false;
+    std::cout << "Now Starting Official Server Session Shutdown Socket Side." << std::endl;
     Winsock::CloseServerSession();
-    WSACleanup();
+    std::cout << "Finished Official Server Session Shutdown Socket Side." << std::endl;
 };
 
 SOCKET_CONNECTION Winsock::CreateSocket() {
@@ -265,6 +343,7 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
     tempConnection.currentSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
     if (tempConnection.currentSocket == INVALID_SOCKET) {
         std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
+        validConnection = false;
         WSACleanup();
         return tempConnection;
     }
@@ -272,6 +351,7 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
     iResult = connect(tempConnection.currentSocket, ptr->ai_addr, (int)ptr->ai_addrlen );
     if (iResult == SOCKET_ERROR) {
         std::cout << "socket connection failed: \n" << WSAGetLastError() << std::endl;
+        validConnection = false;
         WSACleanup();
         return tempConnection;
     }
@@ -295,6 +375,7 @@ SOCKET_CONNECTION Winsock::CreateSocket(const char* url, const char* port) {
         SSL_CTX_free(ctx);
         closesocket(tempConnection.currentSocket);
         WSACleanup();
+        validConnection = false;
         return tempConnection;
     }
     tempConnection.socket_ssl = ssl;
@@ -328,7 +409,7 @@ void Winsock::InitServerSession(int SessionID) {
             i += 1;
         }
     }
-    std::cout << "Able to Create Socket with SessionID:" + std::to_string(SessionID) << std::endl;
+    std::cout << "Able to Create Socket with SessionID: " + std::to_string(SessionID) << std::endl;
     // Close out socket
     memset(buffer, 0, 1000);
     SSL_free(initConnection.socket_ssl);
@@ -349,14 +430,11 @@ void Winsock::CloseServerSession() {
     char buffer[1000];
     std::string websiteHTML;
     // Simply Create a new Socket
-    SOCKET_CONNECTION initConnection = CreateSocket("talkdirect-api.onrender.com", "10000");
+    SOCKET_CONNECTION finalConnection = CreateSocket("talkdirect-api.onrender.com", "443");
     
-    // For now, just send a request to make a new Session, later we'll add on searching if session already exists
-    // TODO: Make this into a SSL_write since the connection is now a HTTPS connection
-    SSL_write(initConnection.socket_ssl, GET_HTTP.c_str(), GET_HTTP.size());
+    SSL_write(finalConnection.socket_ssl, GET_HTTP.c_str(), GET_HTTP.size());
     
-    // TODO: Make this into a SSL_read since the connection is now a HTTPS connection
-    while ((nDataLen = SSL_read(initConnection.socket_ssl, buffer, 1000)) > 0) {
+    while ((nDataLen = SSL_read(finalConnection.socket_ssl, buffer, 1000)) > 0) {
         int i = 0;
         while (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r') {
             websiteHTML += buffer[i];
@@ -367,12 +445,12 @@ void Winsock::CloseServerSession() {
     std::cout << "Able to Close Socket with SessionID:" + std::to_string(SessionID) << std::endl;
     // Close out socket
     memset(buffer, 0, 1000);
-    SSL_free(initConnection.socket_ssl);
+    SSL_free(finalConnection.socket_ssl);
     SSL_CTX_free(ctx);
-    shutdown(initConnection.currentSocket, SD_BOTH);
-    closesocket(initConnection.currentSocket);
+    shutdown(finalConnection.currentSocket, SD_BOTH);
+    closesocket(finalConnection.currentSocket);
 };
 
-bool Winsock::validConnection() {
-    return currentConnection.currentSocket != INVALID_SOCKET;
+bool Winsock::getValidConnection() {
+    return validConnection;
 }

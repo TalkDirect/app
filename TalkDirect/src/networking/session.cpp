@@ -9,16 +9,15 @@ Session::Session(int SessionID) {
     if (SessionID < 0)
         return;
     CreateSession(SessionID);
-    Session::sessionActive = true;
+    sessionActive.store(true);
 };
 
 Session::~Session() {
-    Session::sessionActive = false;
-    nQueue.empty();
-    delete Session::websocket;
+    std::cout << "Now deleting current websocket." << std::endl;
+    delete websocket;
 };
 
-void Session::execute() {
+/*void Session::execute() {
     std::thread RecvThread(std::bind(&Session::ReceiveData, this));
     RecvThread.detach();
     std::cout << "Started Socket Receiver Thread" << std::endl;
@@ -31,31 +30,55 @@ void Session::execute() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::cout << "Exiting execute Function" << std::endl;
-};
+};*/
 
 void Session::CreateSession(int SessionID) {
     // First, get a new websocket up and running
     websocket = new webSocket(SessionID);
-    std::thread RecvThread(std::bind(&Session::ReceiveData, this));
-    RecvThread.detach();
+    auto bound_thread = std::bind(&Session::ReceiveData, this);
+    RecvThread = std::thread(bound_thread);
+
 };
 
+// TODO: Not a fan of this function being a void, will have to edit this later to make it a bool so its more useful
+// same potential issue as function below
+void Session::CloseSession() {
+    // Mark This session inactive and flush out the queue
+    sessionActive.store(false);
+    nQueue.empty();
+    std::cout << "Starting Disconnecting Socket Process from Current Session." << std::endl;
+    // Start to disconnect the websocket
+    websocket->DiscounnectSocket();
+    
+    // Attempt to join thread back with main thread once thread running receiveData() sucessfully leaves
+    if (RecvThread.joinable()) {
+        RecvThread.join();
+    }
+};
+// TODO: Experiencing a race condition between socket shutdowning & closing or this thread ceasing and joining back with main thread before then
+// must fix
 void Session::ReceiveData() {
     // Slight reminder; first byte is the dataID byte signaling if Text, Video, Audio, packet, ignoring for now
-    while (sessionActive && websocket->validSocket()) {
+    while (sessionActive.load(std::memory_order_relaxed) && websocket->validSocket()) {
         unsigned char* receivedData = Session::websocket->onRetrieveMessage();
+
+        if (receivedData == nullptr || !Session::websocket->validSocket() || !sessionActive.load()) {
+            break;
+        }
+
         if (!checkEmptyBuffer(receivedData)) {
             nQueue.push(receivedData);
             std::cout << receivedData << std::endl;
         }
     }
+    std::cout << "Exiting Current Session's Recv Function Thread" << std::endl;
 };
 
 void Session::SendData(unsigned char* data, int dataSize) {
     Session::websocket->onSendMessage(data, dataSize);
 };
 
-boolean Session::isActive() {
+bool Session::isActive() {
     return Session::sessionActive;
 };
 

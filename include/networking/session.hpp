@@ -18,7 +18,7 @@ class Session {
 
         // Can only create session on desktop app
         void CreateSession(int sessionID);
-        void LeaveSession();
+        void CloseSession();
         //client RetrieveClients();
 
         webSocket* getWebSocket();
@@ -30,9 +30,9 @@ class Session {
         /**
          * Primary Function for Session Class, starts the async process of recving buffers from the socket while also sending them
          */
-        void execute();
+        //void execute();
 
-        boolean isActive();
+        bool isActive();
         
     private:
         int sessionID;
@@ -40,6 +40,7 @@ class Session {
         video* m_video;
         networkQueue<unsigned char*> nQueue;
         std::atomic<boolean> sessionActive = false;
+        std::thread RecvThread;
 
         bool checkEmptyBuffer(unsigned char* buffer);
 

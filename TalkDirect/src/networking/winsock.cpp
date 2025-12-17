@@ -188,10 +188,11 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
 
                 std::cout << "bytes to Copy: " << bytesToCopy << std::endl;
                 
-                for (int i = 0; i < bytesToCopy; i++) {// start to decode the received buffer by pulling out bytes starting from offset & placing at start of new buffer
-                    decodedBuffer[bytesDecodedTotal++] = recvbuf[readOffset++];
-                    bytesDecodedFrameTotal++;
-                }
+                // Copy the bytes over from recvbuf to decodedBuffer
+                std::memcpy(decodedBuffer+bytesDecodedTotal, recvbuf+readOffset, bytesToCopy);
+                bytesDecodedFrameTotal += bytesToCopy;
+                bytesDecodedTotal += bytesToCopy;
+                readOffset += bytesToCopy;
                 
                 std::cout << "Current Decoded Message Length: " << bytesDecodedTotal << std::endl;
 

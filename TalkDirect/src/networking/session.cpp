@@ -68,7 +68,7 @@ void Session::ReceiveData() {
 
         if (!checkEmptyBuffer(receivedData)) {
             nQueue.push(receivedData);
-            std::cout << receivedData << std::endl;
+            //std::cout << receivedData << std::endl;
         }
     }
     std::cout << "Exiting Current Session's Recv Function Thread" << std::endl;

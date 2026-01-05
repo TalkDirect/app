@@ -150,14 +150,19 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
     int iResult;
     u_int64 size = 100000;
     unsigned char recvbuf[size] = {};
-    unsigned char* decodedBuffer = new unsigned char[size];
+    // To ensure null terminator is properly applied increment size by 1
+    unsigned char* decodedBuffer = new unsigned char[size+1];
 
     u_int64 bytesDecodedFrameTotal = 0;
     u_int64 bytesDecodedTotal = 0;
     u_int64 currentFramePayloadLen = 0;
+
     bool waitingForHeader = true;
     bool isMessageFin = false;
     bool working = true;
+
+    // Character to represent the first byte in our recvbuf, signifies dataID might turn into a custom bitfield header
+    unsigned char dataID = 0;
 
     while (working && validConnection) {// Outer Loop: Main job is to read from socket when needed
         
@@ -201,10 +206,12 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                     std::cout << "Total Message Size: " << currentFramePayloadLen << std::endl;
 
                     /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
-                    signify if the packet is an Audio, String or Video packet for example. For now, we'll assume that all packets are strings till later, so just 
-                    increment past it and ignore it.
+                    signify if the packet is an Audio, String or Video packet for example.
+
+                    To signify this, just grab the dataID from recvbuf which should be first byte after all of the TCP header information has been decoded properly
                     */
                     if (bytesDecodedTotal == 0) {
+                        dataID = recvbuf[readOffset];
                         readOffset++;
                         currentFramePayloadLen--;
                     }
@@ -233,6 +240,18 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                     std::cout << "Fully decoded Frame" << std::endl;
                     if (isMessageFin) {// Just checks if the Finished bit is flipped to 1 or 0. If 1 then this is the last frame and we're finished
                         std::cout << "Completed message" << std::endl;
+                        
+                        // Preform last minute message editing based on dataID
+                        switch (dataID)
+                        {
+                        case 2://STRING CASE
+                            decodedBuffer[bytesDecodedTotal] = '\0';
+                            break;
+                        
+                        default:
+                            break;
+                        }
+
                         working = false;
                         break;
                     

@@ -29,9 +29,10 @@ Winsock::Winsock(const char* socketUrl, int SessionID) {
 };
 
 Winsock::~Winsock() {
-    shutdown(currentConnection.currentSocket, SD_BOTH);
+    SSL_shutdown(currentConnection.socket_ssl);
     SSL_free(currentConnection.socket_ssl);
-    SSL_CTX_free(ctx);
+    ctx = nullptr;
+    shutdown(currentConnection.currentSocket, SD_BOTH);
     closesocket(currentConnection.currentSocket);
     WSACleanup();
     std::cout << "Winsock deleted." << std::endl;
@@ -41,65 +42,97 @@ Winsock::~Winsock() {
 char Winsock::SendData(unsigned char data[], int dataSize, int dataType) {
     int iResult;
     int payloadIndicator = dataSize;
+    int total_sent = 0;
     if (dataSize > 65535) {
         payloadIndicator = 127;
     } else if (dataSize > 125) {
         payloadIndicator = 126;
     }
-    // Setting up the data to become the TCP Header Information
-    struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, payloadIndicator};
-    unsigned char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
+    /*
+    While loop is here to make sure if we send off data bigger than 16Kb(2**16 bytes) that due to TCP/TLS protocol only handling up 16kB it will
+    break up our message into many different pieces. We can prevent that by simply having it loop back to the front whenever its ready to send
+    out more data if we didn't send out total data size
+    */
+    while (total_sent < dataSize) {// This while loop should only be looped back for messages that have a datasize > 2**16 bytes (payloadIndicator is 127)
+        // Setting up the data to become the TCP Header Information
+        struct socketMessageHeader msgHeaderField = {1, 0, 0, 0, dataType, 1, payloadIndicator};
+        unsigned char maskingKey[4] = {0x12, 0x34, 0x56, 0x78};
 
-    assert(sizeof(&data) != 0 && "For some reason we're sending over no data, this should never happen it's wasteful and pointless to do this. Issa bug");
+        assert(sizeof(&data) != 0 && "For some reason we're sending over no data, this should never happen it's wasteful and pointless to do this. Issa bug");
 
-    // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
-    int headerSize = 2;
-    if (payloadIndicator > 125) {
-        headerSize += (payloadIndicator == 126) ? 2 : 8; // Simply means if dataSize is less than or = to 65535 add on two bits else add on 8
-    }
-    
-    // These bits are for masking key
-    headerSize += 4;
+        // Adding in the header bytes first before we add in the data bytes to the buffer to be sent off
+        int headerSize = 2;
+        if (payloadIndicator > 125) {
+            headerSize += (payloadIndicator == 126) ? 2 : 8; // Simply means if dataSize is less than or = to 65535 add on two bits else add on 8
+        }
+        
+        // These bits are for masking key
+        headerSize += 4;
 
-    // current number of bits written to buffer
-    int offset = 0;
+        // current number of bits written to buffer
+        int offset = 0;
 
-    // Edit the header bitfield to have to proper values we want
-    char buffer[headerSize+dataSize];
-    buffer[offset++] = (msgHeaderField.finishedBit << 7) 
-                | (msgHeaderField.rsv1 << 6)
-                | (msgHeaderField.rsv2 << 5)
-                | (msgHeaderField.rsv3 << 4)
-                | (msgHeaderField.Opcode & 0x0F);
+        // Edit the header bitfield to have to proper values we want
+        char buffer[headerSize+dataSize];
+        buffer[offset++] = (msgHeaderField.finishedBit << 7) 
+                    | (msgHeaderField.rsv1 << 6)
+                    | (msgHeaderField.rsv2 << 5)
+                    | (msgHeaderField.rsv3 << 4)
+                    | (msgHeaderField.Opcode & 0x0F);
 
-    buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen & 0x7F);
+        buffer[offset++] = (msgHeaderField.mask) << 7 | (msgHeaderField.payloadLen & 0x7F);
 
-    // Check if we need to extend payload length past 7 bits or not
-    if (payloadIndicator == 126) {
-        buffer[offset++] = (dataSize >> 8) & 0xFF;
-        buffer[offset++] = dataSize & 0xFF;
-    } else if (payloadIndicator == 127) {
-        uint64_t fullDataSize = (uint64_t)dataSize;
-        for (int i = 7; i >= 0; i--)
-            buffer[offset++] = (fullDataSize >> (i*8)) & 0xFF;
-    }
+        // Check if we need to extend payload length past 7 bits or not
+        if (payloadIndicator == 126) {
+            buffer[offset++] = (dataSize >> 8) & 0xFF;
+            buffer[offset++] = dataSize & 0xFF;
+        } else if (payloadIndicator == 127) {
+            uint64_t fullDataSize = (uint64_t)dataSize;
+            for (int i = 7; i < 0; i--)
+                buffer[offset++] = (fullDataSize >> (i*8)) & 0xFF;
+        }
 
-    memcpy(buffer + offset, maskingKey, 4);
-    offset += 4;
+        memcpy(buffer + offset, maskingKey, 4);
+        offset += 4;
 
-    // XOR the data buffer before we copy it over to be sent off
-    for (int i = 0; i < dataSize; i++)
-        data[i] ^= maskingKey[i % 4];
+        // XOR the data buffer before we copy it over to be sent off
+        for (int i = 0; i < dataSize; i++)
+            data[i] ^= maskingKey[i % 4];
 
-    memcpy(buffer + offset, data, dataSize);
-    offset +=dataSize;
+        memcpy(buffer + offset, data, dataSize);
+        offset +=dataSize;
 
-    iResult = SSL_write(currentConnection.socket_ssl, buffer, offset);
-    if (iResult == SOCKET_ERROR) {
-        WSACleanup();
-        validConnection = false;
-        std::cout << "error sending bytes" << std::endl;
-        return 0x01;
+        iResult = SSL_write(currentConnection.socket_ssl, buffer, offset);
+        if (iResult > 0) {// Successfully sent data
+            total_sent += dataSize;
+            continue;
+        }
+        int err = SSL_get_error(currentConnection.socket_ssl, iResult);
+
+        if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+            // Setup select() to wait for the socket
+            fd_set read_fds, write_fds;
+            FD_ZERO(&read_fds);
+            FD_ZERO(&write_fds);
+
+            if (err == SSL_ERROR_WANT_READ) {
+                FD_SET(currentConnection.currentSocket, &read_fds);
+            } else {
+                FD_SET(currentConnection.currentSocket, &write_fds);
+            }
+
+            // Wait for the socket to be ready (timeout of 5 seconds here)
+            timeval tv = {1, 0};
+            int activity = select(0, &read_fds, &write_fds, NULL, &tv);
+
+            if (activity <= 0) {
+                return 0x01; // Timeout or socket error
+            }
+            continue;
+        } else {
+            // A fatal error occurred
+            return 0x01;
+        }
     }
     return 0x00;
 };
@@ -115,7 +148,7 @@ Returns the decodedBuffer (might make into std::vector so its dynamic sizable) w
 unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) { 
 
     int iResult;
-    u_int64 size = 10240;
+    u_int64 size = 100000;
     unsigned char recvbuf[size] = {};
     unsigned char* decodedBuffer = new unsigned char[size];
 

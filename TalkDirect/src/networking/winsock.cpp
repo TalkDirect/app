@@ -220,10 +220,10 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                 }
 
                 // Dictates how much bytes to copy from recvBuf into our decodedBuffer
-                // Gets the bytes remaining in our frame AND chunk (how much bytes SSL_read said was supposed to be receiving)
-                // Then picks what ever is lower
                 u_int64 remainingInFrame = currentFramePayloadLen - bytesDecodedFrameTotal;
+                // Gets the bytes remaining in our frame AND chunk (how much bytes SSL_read said was supposed to be receiving)
                 u_int64 avilableInChunk = iResult - readOffset;
+                // Then picks what ever is lower
                 u_int64 bytesToCopy = std::min(remainingInFrame, avilableInChunk);
 
                 std::cout << "bytes to Copy: " << bytesToCopy << std::endl;

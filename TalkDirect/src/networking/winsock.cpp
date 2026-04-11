@@ -166,11 +166,12 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
 
     while (working && validConnection) {// Outer Loop: Main job is to read from socket when needed
         
-        std::memset(recvbuf, 0, size);
         iResult = SSL_read(Connection.socket_ssl, recvbuf, size);
         
         if (iResult >= 0) { // if postive, will contain amount of bytes in message we need to decode these bytes
             std::cout << "Bytes recieved: " << iResult << std::endl;
+            
+            // Read offsets just indicates where the header bytes are and where the actual message begins
             u_int64 readOffset = 0;
             while (readOffset < iResult) {// Inner Loop: Main job is to decode data, if reached end of payload length for current frame it breaks and reads more as needed
             
@@ -245,9 +246,14 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                         switch (dataID)
                         {
                         case 2://STRING CASE
+                            // Add in null terminator to end of buffer to ensure GUI does not read in and process junk data
                             decodedBuffer[bytesDecodedTotal] = '\0';
                             break;
-                        
+                        case 3://FILE CASE
+                            // For now do nothing except just report back a file was found, later on we'll save it from here
+                            std::cout << "File was received to be downloaded" << std::endl;
+                            decodedBuffer = (unsigned char*)"File was received to be downloaded, however not yet implemented.";
+                            break;
                         default:
                             break;
                         }

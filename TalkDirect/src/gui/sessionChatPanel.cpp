@@ -2,6 +2,7 @@
 
 
 #define SOCKET_STRING_DATA_IDENTIFIER 0x02
+#define SOCKET_FILE_DATA_IDENTIFIER 0x03
 #define BASE_BOX_WIDTH 500
 
 sessionChatPanel::sessionChatPanel(Frame* currFrame)
@@ -18,6 +19,8 @@ sessionChatPanel::sessionChatPanel(Frame* currFrame)
     auto* sendButton = new wxButton(this, ID_Send_Btn_Clicked, "Send");
     auto* primaryVBox = new wxBoxSizer(wxVERTICAL);
     auto* inputHBox = new wxBoxSizer(wxHORIZONTAL);
+
+    this->SetDropTarget(new MyFileDropTarget(this));
     /* Apply Any Additional Functionality/Styles */
 
     // Text Field Styles
@@ -72,3 +75,35 @@ void sessionChatPanel::OnSendButton(wxCommandEvent& event) {
 void sessionChatPanel::OnSessionMessageReceived(wxCommandEvent& event) {
     chatTextMessages->AppendText("Message: " + event.GetString() + " \n");
 };
+
+void sessionChatPanel::OnFileSend(const wxString& filePath) {
+    wxFile file;
+    if (!file.Open(filePath, wxFile::read)) {
+        wxLogError("Could not open file: %s", filePath);
+        return;
+    }
+
+    sessionManager* sessionMgr = currFrame->getSessionManager();
+
+    // Get Size & create buffer to hold file data
+    wxUint64 totalSize = file.Length();
+    wxString* fileData = new wxString();
+    
+    // Extract File Data
+    bool fileDataExtraction = file.ReadAll(fileData);    
+
+    // Set up needed variables to send data over websockets
+    int bufferSize = totalSize + 1 + 1; // extra plus one is for dataID
+    unsigned char* buffer = new unsigned char[bufferSize];
+
+    // Set the first bit to be our proper Data identifier for strings
+    std::memset(buffer, SOCKET_FILE_DATA_IDENTIFIER, 1);
+
+    // Start to copy over the c string down into the buffer to be sent out via sessionManager
+    std::memcpy(buffer+1, fileData->c_str(), bufferSize-1);
+    sessionMgr->OnSend(buffer, bufferSize);
+
+    delete[] buffer;
+
+    
+}

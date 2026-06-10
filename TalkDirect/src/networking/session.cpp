@@ -74,7 +74,7 @@ void Session::ReceiveData() {
     std::cout << "Exiting Current Session's Recv Function Thread" << std::endl;
 };
 
-void Session::SendData(unsigned char* data, int dataSize) {
+void Session::SendData(unsigned char* data, u_int64 dataSize) {
     Session::websocket->onSendMessage(data, dataSize);
 };
 

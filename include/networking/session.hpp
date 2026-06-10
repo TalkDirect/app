@@ -25,7 +25,7 @@ class Session {
         networkQueue<unsigned char*>* getNQueue();
 
         void ReceiveData();
-        void SendData(unsigned char* data, int dataSize);
+        void SendData(unsigned char* data, u_int64 dataSize);
 
         /**
          * Primary Function for Session Class, starts the async process of recving buffers from the socket while also sending them

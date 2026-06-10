@@ -79,7 +79,7 @@ void sessionChatPanel::OnSessionMessageReceived(wxCommandEvent& event) {
 void sessionChatPanel::OnFileSend(const wxString& filePath) {
     wxFile file;
     if (!file.Open(filePath, wxFile::read)) {
-        wxLogError("Could not open file: %s", filePath);
+        wxMessageBox("Could not open file: " + filePath, "File Error", wxOK | wxICON_ERROR);
         return;
     }
 

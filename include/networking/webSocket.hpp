@@ -20,7 +20,7 @@ class webSocket {
         @param dataSize the size of the data array
 
     */
-    void onSendMessage(unsigned char data[], int dataSize);
+    void onSendMessage(unsigned char data[], u_int64 dataSize);
     unsigned char* onRetrieveMessage();
 
     bool validSocket();
@@ -37,7 +37,7 @@ class webSocket {
         @param dataSize the size of the data array
         @param dataType  the type of the data we're sending off
     */
-    void SendMessages(unsigned char data[], int dataSize, int dataType);
+    void SendMessages(unsigned char data[], u_int64 dataSize, int dataType);
     
     /*
         Recieve messages from the server, returns them in an char pointer that points to a char array

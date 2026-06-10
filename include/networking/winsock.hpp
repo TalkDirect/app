@@ -32,7 +32,7 @@ class Winsock {
         @param dataType  the type of the data we're sending off
 
     */
-    char SendData(unsigned char data[], int dataSize, int dataType);
+    char SendData(unsigned char data[], u_int64 dataSize, int dataType);
 
     /*
     Recieve data over websockets, in later implementations will allow for the sorting of data to optimize it

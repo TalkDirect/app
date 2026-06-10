@@ -41,11 +41,11 @@ void sessionManager::Recv() {
     }
 };
 
-void sessionManager::OnSend(unsigned char* data, int dataSize) {
+void sessionManager::OnSend(unsigned char* data, u_int64 dataSize) {
     /* Setting up Thread */
     Send(data, dataSize);
 };
 
-void sessionManager::Send(unsigned char* data, int dataSize) {
+void sessionManager::Send(unsigned char* data, u_int64 dataSize) {
     currSession->SendData(data, dataSize);
 };

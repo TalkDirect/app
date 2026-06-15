@@ -25,7 +25,8 @@ class sessionChatPanel : public wxPanel {
     // INPUT EVENTS
     void OnTextInput(wxKeyEvent& event);
     void OnSendButton(wxCommandEvent& event);
-    void OnSessionMessageReceived(wxCommandEvent& event);
+    void OnSessionMessageReceived(wxThreadEvent& event);
+    void OnFileReceive(wxThreadEvent& event);
 
     // EVENT ENUMS
     enum eventCode {

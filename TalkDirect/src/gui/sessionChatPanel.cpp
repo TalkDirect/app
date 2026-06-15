@@ -72,8 +72,18 @@ void sessionChatPanel::OnSendButton(wxCommandEvent& event) {
     delete[] buffer;
 };
 
-void sessionChatPanel::OnSessionMessageReceived(wxCommandEvent& event) {
-    chatTextMessages->AppendText("Message: " + event.GetString() + " \n");
+void sessionChatPanel::OnSessionMessageReceived(wxThreadEvent& event) {
+    // Check to see if event is a File being received or not
+    int EventId = event.GetInt();
+    std::cout << "Data ID: " << EventId << std::endl;
+    switch (EventId) {
+        case 2://String
+            chatTextMessages->AppendText("Message: " + wxString(event.GetPayload<unsigned char*>()) + " \n");
+            break;
+        case 3://File
+            sessionChatPanel::OnFileReceive(event);
+            break;
+    }
 };
 
 void sessionChatPanel::OnFileSend(const wxString& filePath) {
@@ -96,7 +106,7 @@ void sessionChatPanel::OnFileSend(const wxString& filePath) {
     int bufferSize = totalSize + 1 + 1; // extra plus one is for dataID
     unsigned char* buffer = new unsigned char[bufferSize];
 
-    // Set the first bit to be our proper Data identifier for strings
+    // Set the first bit to be our proper Data identifier for files
     std::memset(buffer, SOCKET_FILE_DATA_IDENTIFIER, 1);
 
     // Start to copy over the c string down into the buffer to be sent out via sessionManager
@@ -104,6 +114,39 @@ void sessionChatPanel::OnFileSend(const wxString& filePath) {
     sessionMgr->OnSend(buffer, bufferSize);
 
     delete[] buffer;
+};
 
+void sessionChatPanel::OnFileReceive(wxThreadEvent& event) {
+    const char* FileName = "talkdirect-app-download.txt";
+    wxFile file;
     
-}
+    // Just pull out the length from eventData
+    unsigned char* eventData = event.GetPayload<unsigned char*>();
+    unsigned int payloadLength = 0;
+    int counter = 1;
+
+    for (int i = 0; i < 8; i++) {
+            payloadLength = (payloadLength << 8) | (static_cast<uint8_t>(eventData[counter++]));
+    }
+    // unsigned char* buffer = new unsigned char[payloadLength];
+    // std::memcpy(buffer, eventData+8, payloadLength);
+    // std::cout << "Buffer to write to file: " << buffer << std::endl;
+
+
+    if (file.Create(FileName, true)) 
+    {   
+        // file.Write(event.GetString()); 
+        file.Write(eventData + counter, payloadLength);
+        file.Close();
+
+        // Clean up the heap allocation passed from the worker thread
+        delete[] eventData;
+    } 
+    else 
+    {
+        wxMessageBox("Failed to create the file.", "Error", wxOK | wxICON_ERROR);
+
+        // Clean up the heap allocation passed from the worker thread
+        delete[] eventData;
+    }
+};

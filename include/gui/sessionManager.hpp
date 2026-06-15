@@ -1,6 +1,7 @@
 #include <thread>
 #include <atomic>
 #include <assert.h>
+#include <iostream>
 #include "gui/customEvents.hpp"
 #include "networking/session.hpp"
 

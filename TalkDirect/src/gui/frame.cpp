@@ -62,7 +62,16 @@ void Frame::OnDiscounnect(wxCommandEvent& event) {
 };
 
 void Frame::OnSocketRecv(wxThreadEvent& event) {
-    wxCommandEvent* evt = new wxCommandEvent(EVT_SOCKET_DATA_RECEIVED_PANEL);
-    evt->SetString(event.GetString());
+    wxThreadEvent* evt = new wxThreadEvent(EVT_SOCKET_DATA_RECEIVED_PANEL);
+    switch (event.GetInt()) {
+        case 2://String
+            evt->SetPayload(event.GetPayload<unsigned char*>());
+            evt->SetInt(event.GetInt());
+            break;
+        case 3://File
+            evt->SetPayload(event.GetPayload<unsigned char*>());
+            evt->SetInt(event.GetInt());
+            break;
+    }
     wxQueueEvent(currPanel, evt);
 }

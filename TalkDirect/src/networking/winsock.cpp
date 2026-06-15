@@ -155,8 +155,8 @@ Returns the decodedBuffer (might make into std::vector so its dynamic sizable) w
 unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) { 
 
     int iResult;
-    u_int64 size = 100000;
-    unsigned char recvbuf[size] = {};
+    u_int64 size = 1000000;
+    unsigned char* recvbuf = new unsigned char[size];
     // To ensure null terminator is properly applied increment size by 1
     unsigned char* decodedBuffer = new unsigned char[size+1];
 
@@ -212,12 +212,6 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                     }
                     
                     std::cout << "Total Message Size: " << currentFramePayloadLen << std::endl;
-
-                    /*reason for this offset increment is that the first byte of our actual message not the header file is our personal DataID byte. This will
-                    signify if the packet is an Audio, String or Video packet for example.
-
-                    To signify this, just grab the dataID from recvbuf which should be first byte after all of the TCP header information has been decoded properly
-                    */
                     if (bytesDecodedTotal == 0) {
                         dataID = recvbuf[readOffset];
                         readOffset++;
@@ -248,18 +242,35 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                     std::cout << "Fully decoded Frame" << std::endl;
                     if (isMessageFin) {// Just checks if the Finished bit is flipped to 1 or 0. If 1 then this is the last frame and we're finished
                         std::cout << "Completed message" << std::endl;
+
+                        // Start the process to encode message length into the byte array
+                        unsigned char* tempbuf = new unsigned char[size+10]; // Adding on 8 more bytes to account for encoded payload length, and one byte for dataID
+                        tempbuf[0] = dataID; // Copying DataID
+                        
+                        unsigned int counter = 1;
+                        for (int i = 7; i >= 0; i--) {
+                            tempbuf[counter++] = (bytesDecodedTotal >> (i*8)) & 0xFF;
+                        }
+                        
+                        // Once encoded into new buffer, start to copy over all data with DataID first, then length, then payload
+                        std::memcpy(tempbuf+counter, decodedBuffer, bytesDecodedTotal); // Copy over payload data
+
                         
                         // Preform last minute message editing based on dataID
                         switch (dataID)
                         {
                         case 2://STRING CASE
                             // Add in null terminator to end of buffer to ensure GUI does not read in and process junk data
-                            decodedBuffer[bytesDecodedTotal] = '\0';
+                            tempbuf[bytesDecodedTotal+counter] = '\0';
+                            // std::cout << "Recv Thread got a string" << std::endl;
+                            // std::cout << "Buffer of Received Message: " << decodedBuffer << std::endl;
+                            // std::cout << "DataID: " << (int)tempbuf[0] << std::endl;
+                            decodedBuffer = tempbuf;
                             break;
                         case 3://FILE CASE
                             // For now do nothing except just report back a file was found, later on we'll save it from here
                             std::cout << "File was received to be downloaded" << std::endl;
-                            decodedBuffer = (unsigned char*)"File was received to be downloaded, however not yet implemented.";
+                            decodedBuffer = tempbuf;
                             break;
                         default:
                             break;
@@ -287,12 +298,13 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                 if (error != WSAEWOULDBLOCK) {
                     std::cout << "Recv failed with error: \n" << WSAGetLastError() << std::endl;
                     validConnection = false;
-                    
+                    delete recvbuf;
                     return nullptr;
                 }
             }
         }
     }
+    delete recvbuf;
     return decodedBuffer;
 };
 

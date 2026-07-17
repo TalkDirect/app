@@ -56,7 +56,7 @@ void sessionManager::Recv() {
         
         switch (dataId) {
             case 2://String
-                std::memcpy(buffer, recvData+counter, messageLength);
+                std::memcpy(buffer, recvData+counter, messageLength); // Only copy the actual payload
                 std::cout << "GUI Recevied String" << std::endl;
                 evt->SetPayload(buffer);
                 evt->SetInt(dataId);

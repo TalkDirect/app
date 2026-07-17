@@ -125,25 +125,22 @@ void sessionChatPanel::OnFileReceive(wxThreadEvent& event) {
     unsigned int payloadLength = 0;
     int counter = 1;
 
+    // Decode the encoded payload length within the received buffer
     for (int i = 0; i < 8; i++) {
-            payloadLength = (payloadLength << 8) | (static_cast<uint8_t>(eventData[counter++]));
+        payloadLength = (payloadLength << 8) | (static_cast<uint8_t>(eventData[counter++]));
     }
-    // unsigned char* buffer = new unsigned char[payloadLength];
-    // std::memcpy(buffer, eventData+8, payloadLength);
-    // std::cout << "Buffer to write to file: " << buffer << std::endl;
 
-
+    // Attempt to create the file
     if (file.Create(FileName, true)) 
     {   
-        // file.Write(event.GetString()); 
+
+        // Write the data starting *past* the encoded payload length (thats what +counter is doing)
         file.Write(eventData + counter, payloadLength);
         file.Close();
 
         // Clean up the heap allocation passed from the worker thread
         delete[] eventData;
-    } 
-    else 
-    {
+    } else {
         wxMessageBox("Failed to create the file.", "Error", wxOK | wxICON_ERROR);
 
         // Clean up the heap allocation passed from the worker thread

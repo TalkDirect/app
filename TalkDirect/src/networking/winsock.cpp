@@ -262,13 +262,9 @@ unsigned char* Winsock::ReceiveData(SOCKET_CONNECTION Connection) {
                         case 2://STRING CASE
                             // Add in null terminator to end of buffer to ensure GUI does not read in and process junk data
                             tempbuf[bytesDecodedTotal+counter] = '\0';
-                            // std::cout << "Recv Thread got a string" << std::endl;
-                            // std::cout << "Buffer of Received Message: " << decodedBuffer << std::endl;
-                            // std::cout << "DataID: " << (int)tempbuf[0] << std::endl;
                             decodedBuffer = tempbuf;
                             break;
                         case 3://FILE CASE
-                            // For now do nothing except just report back a file was found, later on we'll save it from here
                             std::cout << "File was received to be downloaded" << std::endl;
                             decodedBuffer = tempbuf;
                             break;
